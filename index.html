@@ -372,28 +372,37 @@ button{font-family:var(--mono);cursor:pointer}
   .big-btn{margin-top:20px}
 }
 
-/* ---------- 新手引导浮层 ---------- */
-#tutorial{
-  position:fixed;inset:0;z-index:65;pointer-events:none;
-  opacity:0;visibility:hidden;transition:opacity .5s,visibility .5s;
+/* ---------- 新手引导：气泡标签（无遮罩） ---------- */
+#guide{position:fixed;inset:0;z-index:66;pointer-events:none;opacity:0;transition:opacity .4s}
+#guide.on{opacity:1}
+.g-pulse{animation:gPulse 1.4s ease-in-out infinite!important}
+@keyframes gPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(94,124,139,.4)}
+  50%{box-shadow:0 0 0 6px rgba(94,124,139,.14)}
 }
-#tutorial.on{opacity:1;visibility:visible}
-#tutorial .t-spot{
-  position:absolute;border:1px solid var(--mist);border-radius:4px;
-  box-shadow:0 0 0 9999px rgba(244,244,241,.72),0 0 30px rgba(94,124,139,.15);
-  transition:all .5s cubic-bezier(.2,.7,.2,1);
+.g-tip{
+  position:absolute;max-width:230px;background:var(--card);border:1px solid var(--line);
+  padding:12px 14px;font-size:10px;line-height:1.9;letter-spacing:.08em;color:var(--mut);
+  box-shadow:0 8px 24px -14px rgba(27,30,32,.3);
+  opacity:0;transform:translateY(8px);
+  transition:opacity .45s cubic-bezier(.2,.7,.2,1),transform .45s cubic-bezier(.2,.7,.2,1);
 }
-#tutorial .t-label{
-  position:absolute;font-family:var(--mono);font-size:9px;letter-spacing:.24em;
-  color:var(--mist);background:var(--paper);padding:6px 12px;
-  border:1px solid var(--line);white-space:nowrap;
-  transition:all .5s cubic-bezier(.2,.7,.2,1);
-}
-#tutorial .t-line{
-  position:absolute;height:1px;background:var(--mist);opacity:.5;
-  transform-origin:left;transform:scaleX(0);transition:transform .5s .1s;
-}
-#tutorial.on .t-line{transform:scaleX(1)}
+.g-tip.show{opacity:1;transform:none}
+.g-tip b{display:block;font-family:var(--mono);font-weight:400;font-size:8px;letter-spacing:.3em;color:var(--mist);margin-bottom:6px}
+.g-tip em{font-style:normal;color:var(--ink)}
+.g-arrow{position:absolute;width:9px;height:9px;background:var(--card);border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.g-tip[data-dir="up"] .g-arrow{left:20px;bottom:-5px;transform:rotate(-135deg)}
+.g-tip[data-dir="down"] .g-arrow{left:20px;top:-5px;transform:rotate(45deg)}
+.g-tip[data-dir="left"] .g-arrow{right:-5px;top:16px;transform:rotate(135deg)}
+/* 滑动手势演示 */
+.g-swipe{display:flex;align-items:center;gap:6px;margin-top:8px;font-family:var(--mono);font-size:9px;color:var(--mut-2)}
+.g-swipe .g-dot{width:22px;height:22px;border:1px solid var(--mist);border-radius:50%;position:relative;flex:none;
+  animation:gSlide 1.6s cubic-bezier(.4,0,.3,1) infinite}
+.g-swipe .g-dot::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:var(--mist)}
+@keyframes gSlide{0%{transform:translateX(-14px);opacity:0}18%{opacity:1}50%{transform:translateX(14px)}82%{opacity:1}100%{transform:translateX(28px);opacity:0}}
+.g-prog{position:absolute;left:14px;bottom:8px;display:flex;gap:5px}
+.g-prog i{width:10px;height:2px;background:var(--line);transition:background .3s}
+.g-prog i.on{background:var(--mist)}
 
 /* ---------- IP 形象：电量精灵 ---------- */
 #spirit{
@@ -567,21 +576,8 @@ button{font-family:var(--mono);cursor:pointer}
   </div>
 </div>
 
-<!-- 新手引导浮层 -->
-<div id="tutorial" aria-hidden="true">
-  <div class="t-spot" id="tSpot1" style="left:50%;top:50%;width:0;height:0;transform:translate(-50%,-50%)">
-    <div class="t-label" style="left:-60px;top:-36px">卡牌 · 左右滑动抉择</div>
-    <div class="t-line" style="left:-56px;top:-16px;width:48px;transform-origin:right"></div>
-  </div>
-  <div class="t-spot" id="tSpot2" style="left:0;top:0;width:0;height:0">
-    <div class="t-label" style="left:0;top:100%">电量 · 0 或 100 即死</div>
-    <div class="t-line" style="left:50%;top:100%;width:1px;height:20px;transform:rotate(90deg);transform-origin:top"></div>
-  </div>
-  <div class="t-spot" id="tSpot3" style="left:0;top:0;width:0;height:0">
-    <div class="t-label" style="right:0;top:100%">选项 · 点击也可出牌</div>
-    <div class="t-line" style="right:0;top:100%;width:1px;height:20px;transform:rotate(90deg);transform-origin:top"></div>
-  </div>
-</div>
+<!-- 新手引导（无遮罩气泡） -->
+<div id="guide" aria-hidden="true"></div>
 
 <!-- IP 形象：电量精灵 -->
 <div id="spirit" aria-label="电量精灵">
@@ -1087,21 +1083,42 @@ function startGame(){
   // 显示电量精灵
   setTimeout(()=>$("#spirit").classList.add("show"),REDUCED?0:2400);
 }
-let tutDone=false;
+let tutDone=false,guideTimer=null;
 function showTutorial(){
-  const tut=$("#tutorial"),stack=$("#stack"),cells=$("#cells"),opts=$("#opts");
-  const sr=stack.getBoundingClientRect(),cr=cells.getBoundingClientRect(),or=opts.getBoundingClientRect();
-  const s1=$("#tSpot1"),s2=$("#tSpot2"),s3=$("#tSpot3");
-  s1.style.left=sr.left+"px";s1.style.top=sr.top+"px";
-  s1.style.width=sr.width+"px";s1.style.height=sr.height+"px";
-  s1.style.transform="none";
-  s2.style.left=cr.left+"px";s2.style.top=cr.top+"px";
-  s2.style.width=cr.width+"px";s2.style.height=cr.height+"px";
-  s3.style.left=or.left+"px";s3.style.top=or.top+"px";
-  s3.style.width=or.width+"px";s3.style.height=or.height+"px";
-  tut.classList.add("on");
-  // 8 秒后自动消失
-  setTimeout(()=>tut.classList.remove("on"),REDUCED?3000:8000);
+  const guide=$("#guide");
+  const steps=[
+    {el:"#stack",dir:"down",pos:r=>({left:r.left+r.width/2-115,top:r.top-124}),
+     html:`<b>抉择 · DECIDE</b>按住卡牌<em>左右滑动</em>，执行该侧的决策。
+           <div class="g-swipe"><span class="g-dot"></span>滑动以出牌</div>`},
+    {el:"#cells",dir:"up",pos:r=>({left:Math.max(12,r.left),top:r.bottom+14}),
+     html:`<b>电量 · CHARGE</b>上方四格：能源 / 生态 / 知识 / 协作。<br><em>归零或过载</em>，文明当场熄灭。`},
+    {el:"#opts",dir:"up",pos:r=>({left:Math.max(12,r.left),top:r.top-92}),
+     html:`<b>点击 · TAP</b>不方便滑时，<em>直接点击</em>左右两个选项也可以。`},
+  ];
+  let i=0;
+  const run=()=>{
+    guide.innerHTML="";
+    [...document.querySelectorAll(".g-pulse")].forEach(e=>e.classList.remove("g-pulse"));
+    if(i>=steps.length){guide.classList.remove("on");return;}
+    const s=steps[i],t=s.el==="#stack"
+      ? $("#stack .card:not(.next):not(.next2)")||$("#stack")
+      : $(s.el);
+    if(!t){guide.classList.remove("on");return;}
+    t.classList.add("g-pulse");
+    const r=t.getBoundingClientRect(),p=s.pos(r);
+    const tip=document.createElement("div");
+    tip.className="g-tip";tip.dataset.dir=s.dir;
+    tip.style.left=clamp(p.left,10,innerWidth-240)+"px";
+    tip.style.top=clamp(p.top,10,innerHeight-130)+"px";
+    tip.innerHTML=s.html+`<span class="g-arrow"></span><span class="g-prog">${steps.map((_,j)=>`<i class="${j<=i?"on":""}"></i>`).join("")}</span>`;
+    guide.appendChild(tip);
+    guide.classList.add("on");
+    requestAnimationFrame(()=>requestAnimationFrame(()=>tip.classList.add("show")));
+    i++;
+    guideTimer=setTimeout(run,REDUCED?400:3400);
+  };
+  clearTimeout(guideTimer);
+  run();
 }
 $("#startBtn").addEventListener("click",e=>{
   const btn=$("#startBtn");
