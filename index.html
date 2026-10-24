@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>文明电量表 · 换电者 CHARGE OR DIE</title>
+<meta name="description" content="一万年，35 次抉择。左右滑动为文明充电或放电——任一格电量归零或过载，文明当场熄灭。北欧冷淡风 × 文明 × 电量表。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&family=IBM+Plex+Mono:wght@300;400&family=Noto+Sans+SC:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F4F1; --paper-2:#EDEDE9; --card:#FBFBF8;
+  --ink:#1B1E20; --mut:#8B9298; --mut-2:#B7BCB9; --line:#D9DBD5;
+  --mist:#5E7C8B; --moss:#7C9A82; --rust:#B3695C;
+  --sans:"Space Grotesk","Noto Sans SC","Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:var(--paper);color:var(--ink);font-family:var(--sans);font-weight:300;
+  -webkit-font-smoothing:antialiased;overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+  transition:background 1.2s ease;
+}
+::selection{background:var(--mist);color:#fff}
+button{font-family:var(--mono);cursor:pointer}
+
+/* ---------- 布景 ---------- */
+#app{height:100%;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding:0 16px;position:relative;z-index:2}
+#grid-bg{
+  position:fixed;inset:0;pointer-events:none;opacity:.5;z-index:0;
+  background-image:linear-gradient(var(--paper-2) 1px,transparent 1px),linear-gradient(90deg,var(--paper-2) 1px,transparent 1px);
+  background-size:56px 56px;
+  animation:gridDrift 80s linear infinite;
+}
+@keyframes gridDrift{to{background-position:56px 56px}}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(120% 90% at 50% 30%,transparent 60%,rgba(27,30,32,.06) 100%)}
+#dust{position:fixed;inset:0;pointer-events:none;z-index:1}
+#flash{position:fixed;inset:0;pointer-events:none;z-index:70;opacity:0}
+#flash.pulse{animation:flashPulse .9s ease}
+@keyframes flashPulse{0%{opacity:0}22%{opacity:1}100%{opacity:0}}
+#app.shake{animation:shake .55s both}
+@keyframes shake{
+  10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}
+  30%,50%,70%{transform:translateX(-6px)}40%,60%{transform:translateX(6px)}
+}
+
+/* ---------- 顶栏 ---------- */
+#hud{padding:14px 0 0;position:relative;z-index:5}
+#hud .top{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:10px}
+#hud .brand{font-family:var(--mono);font-size:10px;letter-spacing:.28em}
+#hud .brand span{color:var(--mut)}
+#yearTag{display:inline-block}
+#hud .year{font-family:var(--mono);font-size:15px}
+#hud .epoch{font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--mut);margin-top:8px;display:flex;align-items:center;gap:10px}
+#dots{display:flex;gap:3px;margin-left:auto}
+#dots span{width:5px;height:2px;background:var(--line);transition:background .4s,transform .4s}
+#dots span.ep{width:9px}
+#dots span.on{background:var(--ink);transform:scaleY(2.2)}
+#dots span.past{background:var(--mut-2)}
+/* 总电量 */
+#total-row{display:flex;align-items:baseline;gap:14px;margin-top:12px}
+#total-num{font-family:var(--mono);font-size:38px;font-weight:300;line-height:1;min-width:120px;transition:color .5s}
+#total-num i{font-style:normal;font-size:16px;color:var(--mut)}
+#total-num.tick{animation:tick .35s ease}
+@keyframes tick{45%{transform:scale(1.055)}}
+#total-cap{font-size:10px;letter-spacing:.3em;color:var(--mut)}
+#total-bar{flex:1;height:1px;background:var(--line);position:relative;align-self:center}
+#total-bar b{position:absolute;left:0;top:-1px;height:3px;width:0;background-color:var(--ink);
+  transition:width .6s cubic-bezier(.25,.7,.2,1),background-color .4s;
+  background-image:linear-gradient(110deg,transparent 20%,rgba(255,255,255,.6) 50%,transparent 80%);
+  background-size:240% 100%;background-position:130% 0}
+#total-bar b.surge{animation:barShine 1s ease}
+/* 四域 */
+#cells{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.cell{transition:background-color .4s}
+.cell.surge{animation:cellGlow .8s ease}
+@keyframes cellGlow{35%{background-color:rgba(94,124,139,.08)}}
+.cell.crash{animation:crash .9s ease both}
+@keyframes crash{
+  0%,100%{transform:none;filter:none}
+  20%{transform:translateX(-4px);filter:brightness(1.15)}
+  45%{transform:translateX(4px)}
+  70%{transform:translateX(-2px)}
+}
+.cell .k{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--mut)}
+.cell .k b{font-weight:400;color:var(--ink)}
+.cell .bar{height:1px;background:var(--line);margin-top:6px;position:relative}
+.cell .bar i{position:absolute;left:0;top:-1px;height:3px;width:50%;
+  transition:width .6s cubic-bezier(.25,.7,.2,1),background-color .3s;
+  background-image:linear-gradient(110deg,transparent 20%,rgba(255,255,255,.6) 50%,transparent 80%);
+  background-size:240% 100%;background-position:130% 0}
+.cell .bar i.surge{animation:barShine 1s ease}
+@keyframes barShine{from{background-position:130% 0}to{background-position:-130% 0}}
+.cell.crit .bar i{animation:blink .7s step-end infinite}
+@keyframes blink{50%{opacity:.15}}
+.fd{
+  position:absolute;left:50%;top:-16px;transform:translateX(-50%);
+  font-family:var(--mono);font-size:10px;pointer-events:none;white-space:nowrap;
+  animation:fdUp 1.1s cubic-bezier(.2,.6,.2,1) forwards;
+}
+@keyframes fdUp{0%{opacity:0;transform:translate(-50%,6px) scale(.8)}25%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-16px) scale(1)}}
+
+/* ---------- 牌桌 ---------- */
+#table{flex:1;position:relative;display:flex;align-items:center;justify-content:center;min-height:0}
+#stack{position:relative;width:min(84vw,360px);aspect-ratio:3/4.35}
+#hint{
+  position:absolute;top:-16px;left:0;right:0;text-align:center;
+  font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--mut);
+  opacity:0;transition:opacity .6s;z-index:6;
+}
+#hint.show{opacity:1;animation:hintNudge 1.6s ease-in-out infinite}
+#hint.gone{opacity:0!important;animation:none}
+@keyframes hintNudge{50%{transform:translateX(6px)}}
+.card{
+  position:absolute;inset:0;background:var(--card);border:1px solid var(--line);
+  display:flex;flex-direction:column;padding:18px 18px 14px;
+  box-shadow:0 1px 0 var(--paper-2),0 14px 30px -18px rgba(27,30,32,.28);
+  will-change:transform;touch-action:none;
+  -webkit-user-select:none;user-select:none;cursor:grab;
+  animation:cardIn .6s cubic-bezier(.2,.7,.2,1),cardBreath 5s ease-in-out .8s infinite;
+  transition:border-color .3s;
+}
+@keyframes cardIn{from{opacity:0;transform:translateY(38px) rotate(2deg) scale(.97)}to{opacity:1;transform:none}}
+@keyframes cardBreath{50%{box-shadow:0 1px 0 var(--paper-2),0 24px 46px -20px rgba(27,30,32,.42)}}
+.card.next{transform:scale(.955) translateY(10px);opacity:.55;pointer-events:none;animation:none}
+.card.next2{transform:scale(.915) translateY(18px);opacity:.3;pointer-events:none;animation:none}
+.card .c-top{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:var(--mut-2);animation:fadeUp .55s .1s backwards}
+.c-img{
+  position:relative;margin-top:12px;height:clamp(86px,17vh,120px);
+  border:1px solid var(--paper-2);overflow:hidden;background:var(--paper-2);flex:none;
+}
+.c-img img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  filter:grayscale(.28) contrast(.96) saturate(.78);opacity:.94;
+  transform:scale(1.06);
+  animation:imgReveal .9s cubic-bezier(.2,.7,.2,1) .12s backwards;
+  transition:transform .25s ease-out;
+}
+@keyframes imgReveal{from{clip-path:inset(0 100% 0 0);transform:scale(1.12)}to{clip-path:inset(0 0 0 0);transform:scale(1.06)}}
+.c-img .tag{
+  position:absolute;left:8px;bottom:6px;font-family:var(--mono);font-size:8px;
+  letter-spacing:.28em;color:#fff;background:rgba(27,30,32,.45);padding:3px 8px 3px 10px;
+  backdrop-filter:blur(2px);animation:fadeUp .5s .5s backwards;
+}
+.card .c-epoch{margin-top:14px;font-family:var(--mono);font-size:9px;letter-spacing:.34em;color:var(--mist);animation:fadeUp .55s .18s backwards}
+.card h2{margin-top:10px;font-size:clamp(17px,4.6vw,21px);font-weight:300;letter-spacing:.08em;line-height:1.7;animation:fadeUp .6s .26s backwards}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.card .c-src{margin-top:auto;border-top:1px solid var(--paper-2);padding-top:9px;font-size:9px;color:var(--mut);letter-spacing:.14em;line-height:1.8;animation:fadeUp .55s .34s backwards}
+.stamp{
+  position:absolute;top:46%;left:50%;transform:translate(-50%,-50%) rotate(-8deg) scale(1.6);
+  font-family:var(--mono);font-size:24px;letter-spacing:.4em;padding:10px 18px 10px 24px;
+  border:2px solid var(--rust);color:var(--rust);opacity:0;pointer-events:none;white-space:nowrap;
+  transition:opacity .25s,transform .25s;background:rgba(251,251,248,.55);backdrop-filter:blur(2px);
+}
+.card.charging .stamp{border-color:var(--moss);color:var(--moss)}
+.card .stamp.on{opacity:.9;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}
+/* 选项标签 */
+#opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px 0 6px;position:relative;z-index:5}
+.opt{
+  border:1px solid var(--line);background:var(--paper);padding:12px 12px 12px;
+  font-size:11px;line-height:1.8;letter-spacing:.06em;color:var(--mut);
+  min-height:56px;display:flex;align-items:center;gap:10px;
+  transition:border-color .25s,color .25s,transform .25s,box-shadow .25s,filter .15s;text-align:left;
+}
+.opt .dir{font-family:var(--mono);font-size:12px;color:var(--mut-2);flex:none;transition:transform .25s}
+.opt:active{filter:brightness(.95)}
+#optL.hot{border-color:var(--mist);color:var(--ink);transform:translateX(5px);box-shadow:-6px 0 14px -10px rgba(94,124,139,.5)}
+#optR.hot{border-color:var(--moss);color:var(--ink);transform:translateX(-5px);box-shadow:6px 0 14px -10px rgba(124,154,130,.5)}
+#optL.hot .dir{transform:translateX(-3px)}
+#optR.hot .dir{transform:translateX(3px)}
+
+/* ---------- 纪元幕布 ---------- */
+#curtain{
+  position:fixed;inset:0;z-index:60;background:var(--paper);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;opacity:0;visibility:hidden;
+  transition:opacity .4s,visibility .4s;
+}
+#curtain.on{opacity:1;visibility:visible}
+#curtain .cimg{
+  width:min(46vw,190px);aspect-ratio:1;border:1px solid var(--line);overflow:hidden;
+  background:var(--paper-2);padding:8px;
+  clip-path:inset(0 100% 0 0);transition:clip-path .95s cubic-bezier(.2,.7,.2,1) .1s;
+}
+#curtain.on .cimg{clip-path:inset(0 0 0 0)}
+#curtain .cimg img{width:100%;height:100%;object-fit:cover;filter:grayscale(.28) saturate(.78)}
+#curtain .k{font-family:var(--mono);font-size:10px;letter-spacing:.5em;color:var(--mut);animation:fadeUp .5s .3s backwards}
+#curtain h3{
+  font-size:clamp(26px,7vw,40px);font-weight:200;
+  letter-spacing:.85em;text-indent:.85em;opacity:0;transform:translateY(10px);
+  transition:letter-spacing 1.1s cubic-bezier(.2,.7,.2,1) .15s,opacity .5s .15s,transform .5s .15s;
+}
+#curtain.on h3{letter-spacing:.4em;text-indent:.4em;opacity:1;transform:none}
+#curtain .en{font-family:var(--mono);font-size:11px;letter-spacing:.4em;color:var(--mist);opacity:0;transition:opacity .6s .5s}
+#curtain.on .en{opacity:1}
+
+/* ---------- 全屏幕（开始/结算） ---------- */
+.screen{
+  position:fixed;inset:0;z-index:80;background:var(--paper);
+  display:flex;align-items:center;justify-content:center;overflow:auto;
+  opacity:0;visibility:hidden;transition:opacity .5s,visibility .5s;
+}
+.screen.on{opacity:1;visibility:visible}
+.sc-in{max-width:520px;width:100%;padding:34px 24px;text-align:center}
+.hero-wrap{border:1px solid var(--line);overflow:hidden}
+.hero-img{
+  width:100%;height:clamp(120px,22vh,170px);object-fit:cover;display:block;
+  filter:grayscale(.3) contrast(.96) saturate(.75);
+  animation:kb 16s ease-in-out infinite alternate;
+}
+@keyframes kb{from{transform:scale(1) translateX(0)}to{transform:scale(1.09) translateX(-1.5%)}}
+.kicker{font-family:var(--mono);font-size:10px;letter-spacing:.5em;color:var(--mut);margin-top:22px;animation:fadeUp .6s .2s backwards}
+.sc-in h1{margin-top:16px;font-size:clamp(28px,7vw,44px);font-weight:200;letter-spacing:.2em;line-height:1.5}
+.sc-in h1 .l1{display:inline-block;animation:fadeUp .8s .28s backwards}
+.sc-in h1 .l2{display:inline-block;animation:fadeUp .8s .44s backwards}
+.sc-in .sub{margin-top:14px;font-size:12px;letter-spacing:.18em;color:var(--mut);line-height:2.2;animation:fadeUp .7s .58s backwards}
+.sc-in .sub em{font-style:normal;color:var(--ink)}
+.big-btn{
+  margin-top:28px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);
+  font-size:12px;letter-spacing:.4em;padding:15px 42px 15px 46px;transition:opacity .3s,letter-spacing .3s,background .3s;
+  animation:fadeUp .7s .72s backwards;
+}
+.big-btn:hover{letter-spacing:.5em}
+.big-btn:disabled{opacity:.4;cursor:wait}
+.ghost-btn{margin-top:14px;display:inline-block;border:none;background:none;color:var(--mut);font-size:10px;letter-spacing:.3em;border-bottom:1px solid var(--line);padding-bottom:4px;transition:color .3s;animation:fadeUp .7s .84s backwards}
+.ghost-btn:hover{color:var(--ink)}
+/* 结算 */
+#out-img{width:100%;height:clamp(110px,20vh,160px);object-fit:cover;display:block;border:1px solid var(--line);filter:grayscale(.35) contrast(.98) saturate(.7)}
+#out-img.reveal{animation:imgReveal 1.1s cubic-bezier(.2,.7,.2,1) .05s backwards}
+#outro .kicker{animation:none}
+#outro h1{animation:fadeUp .7s .2s backwards}
+#outro .sub{animation:fadeUp .7s .34s backwards}
+#final-cells{margin-top:30px;border-top:1px solid var(--line)}
+.fc{display:flex;align-items:baseline;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);opacity:0;transform:translateY(10px)}
+.fc.in{animation:vIn .5s cubic-bezier(.2,.6,.2,1) forwards}
+@keyframes vIn{to{opacity:1;transform:none}}
+.fc .fk{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--mut);width:92px;text-align:left;flex:none}
+.fc .fbar{flex:1;height:1px;background:var(--line);position:relative;align-self:center}
+.fc .fbar i{position:absolute;left:0;top:-1px;height:3px;background:var(--mist);width:0;transition:width 1s cubic-bezier(.25,.7,.2,1)}
+.fc .fv{font-family:var(--mono);font-size:14px;width:64px;text-align:right;flex:none}
+#verdict{margin-top:26px;font-size:13px;letter-spacing:.2em;line-height:2;animation:fadeUp .7s .9s backwards}
+#verdict b{font-weight:400;color:var(--mist)}
+#death-tag{
+  display:inline-block;margin-top:22px;font-family:var(--mono);font-size:10px;letter-spacing:.3em;
+  color:var(--rust);border:1px solid var(--rust);padding:8px 16px;animation:fadeUp .6s 1s backwards;
+}
+#outro .big-btn{animation:fadeUp .7s 1.1s backwards}
+
+/* ---------- 规则小卡（弹窗） ---------- */
+#rules{
+  position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
+  background:rgba(244,244,241,.8);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s;
+}
+#rules.on{opacity:1;visibility:visible}
+#rules .box{
+  width:min(420px,88vw);background:var(--card);border:1px solid var(--line);padding:28px 26px 30px;
+  transform:translateY(24px) scale(.98);transition:transform .35s cubic-bezier(.2,.7,.2,1);position:relative;
+}
+#rules.on .box{transform:none}
+#rules h4{font-size:13px;letter-spacing:.4em;font-weight:400}
+#rules ul{list-style:none;margin-top:18px}
+#rules li{font-size:11px;color:var(--mut);line-height:2.2;padding-left:18px;position:relative;opacity:0;transform:translateX(-8px);transition:opacity .4s,transform .4s}
+#rules.on li{opacity:1;transform:none}
+#rules.on li:nth-child(1){transition-delay:.1s}#rules.on li:nth-child(2){transition-delay:.18s}
+#rules.on li:nth-child(3){transition-delay:.26s}#rules.on li:nth-child(4){transition-delay:.34s}
+#rules.on li:nth-child(5){transition-delay:.42s}
+#rules li::before{content:"—";position:absolute;left:0;color:var(--mut-2)}
+#rules li b{font-weight:400;color:var(--ink)}
+#rules .x{position:absolute;top:10px;right:10px;width:32px;height:32px;border:1px solid var(--line);background:none;color:var(--mut);font-size:12px;transition:transform .3s,color .3s}
+#rules .x:hover{transform:rotate(90deg);color:var(--ink)}
+@media (max-height:760px){
+  #stack{width:min(74vw,320px)}
+  #total-num{font-size:32px}
+  .c-img{height:clamp(72px,15vh,96px)}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}#dust{display:none}}
+</style>
+</head>
+<body>
+<canvas id="dust"></canvas>
+<div id="grid-bg"></div>
+<div id="vignette"></div>
+<div id="flash"></div>
+
+<div id="app">
+  <!-- HUD -->
+  <div id="hud">
+    <div class="top">
+      <div class="brand">CIVILIZATION BATTERY <span>文明电量表</span></div>
+      <div class="year"><span id="yearTag">前 8000</span></div>
+    </div>
+    <div class="epoch">
+      <span id="epochTag">EPOCH 01 · 火之纪元 FIRE AGE</span>
+      <span id="dots"></span>
+    </div>
+    <div id="total-row">
+      <div id="total-num">50<i>%</i></div>
+      <div id="total-bar"><b></b></div>
+      <div id="total-cap">TOTAL 总电量</div>
+    </div>
+    <div id="cells"></div>
+  </div>
+
+  <!-- 牌桌 -->
+  <div id="table">
+    <div id="stack">
+      <div id="hint">← 拖动卡片做出选择 →</div>
+    </div>
+  </div>
+  <div id="opts">
+    <button class="opt" id="optL"><span class="dir">←</span><span id="optLT">—</span></button>
+    <button class="opt" id="optR"><span class="dir">→</span><span id="optRT">—</span></button>
+  </div>
+</div>
+
+<!-- 纪元幕布 -->
+<div id="curtain">
+  <div class="cimg"><img id="curImg" alt=""></div>
+  <div class="k">EPOCH</div>
+  <h3 id="curCn">—</h3>
+  <div class="en" id="curEn">—</div>
+</div>
+
+<!-- 开始屏 -->
+<div class="screen on" id="intro">
+  <div class="sc-in">
+    <div class="hero-wrap"><img class="hero-img" id="heroImg" alt="文明电量表"></div>
+    <div class="kicker">TRAE BLIND-BOX · GROUP 02</div>
+    <h1><span class="l1">文明电量表</span><br><span class="l2">换电者</span></h1>
+    <p class="sub">
+      一万年，35 次抉择。<br>
+      你拨动 <em>能源 / 生态 / 知识 / 协作</em> 四格电量——<br>
+      每一次滑动都在充电，或放电。<br>
+      <em>任一格归零或过载，文明当场熄灭。</em>
+    </p>
+    <button class="big-btn" id="startBtn">接入电量表 · START</button>
+    <button class="ghost-btn" id="rulesBtn">游戏规则 RULES</button>
+  </div>
+</div>
+
+<!-- 结算屏 -->
+<div class="screen" id="outro">
+  <div class="sc-in">
+    <img id="out-img" alt="结局">
+    <div class="kicker" id="outK">GAME OVER</div>
+    <h1 id="outTitle">—</h1>
+    <p class="sub" id="outSub">—</p>
+    <div id="final-cells"></div>
+    <div id="verdict">—</div>
+    <div><span id="death-tag" style="display:none"></span></div>
+    <button class="big-btn" id="againBtn">重新充电 · RETRY</button>
+  </div>
+</div>
+
+<!-- 规则弹窗 -->
+<div id="rules">
+  <div class="box">
+    <button class="x" id="rulesX">✕</button>
+    <h4>规则 RULES</h4>
+    <ul>
+      <li><b>拖拽卡片</b>向左或向右滑出（也可点击底部选项），执行该侧决策。</li>
+      <li>四个<b>电量格</b>：能源 / 生态 / 知识 / 协作。决策使其充电（+）或放电（−）。</li>
+      <li><b>任一格归零（0）或过载（100）</b>，文明立即终结——过高与过低同样致命。</li>
+      <li>每张卡推进几十至几百年，共 <b>5 个纪元 × 7 张</b>。撑过第 35 张 = 抵达 I 型文明门槛。</li>
+      <li>结局按剩余总电量评定<b>卡氏等级</b>。一局约 3 分钟。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+/* ================= 图片（统一北欧冷淡风生成图） ================= */
+const IMG_STYLE=", scandinavian minimalist photography, muted desaturated palette, fog grey and warm grey tones, soft diffused light, subtle film grain, vast negative space, quiet cold atmosphere, editorial minimalism";
+const imgURL=(p,s)=>`https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(p+IMG_STYLE)}&image_size=${s}`;
+const IMG_HERO=imgURL("a single minimalist analog voltage gauge with a thin needle mounted on a pale grey concrete wall, soft shadow","landscape_16_9");
+const IMG_END =imgURL("a dead minimalist battery lying on a bare concrete floor, thin layer of dust, dramatic side light","landscape_16_9");
+
+/* ================= 数据 ================= */
+const DOM=[
+  {k:"eng",cn:"能源",en:"ENERGY",v:50},
+  {k:"eco",cn:"生态",en:"ECOLOGY",v:55},
+  {k:"kno",cn:"知识",en:"KNOWLEDGE",v:45},
+  {k:"soc",cn:"协作",en:"SOCIETY",v:50},
+];
+const EPOCHS=[
+ {cn:"火之纪元",en:"FIRE AGE",bg:"#F4F2EE",tint:[196,120,92],
+  img:imgURL("a small campfire burning at a dark cave entrance, tiny distant human silhouette warming hands","portrait_4_3"),
+  cards:[
+  {q:"暴雨浇灭了火种，寒夜将至。",l:"分出最后火种给邻落",r:"独自守住火堆",
+   L:{soc:12,kno:4,eng:-12},R:{eng:6,soc:-14}},
+  {q:"猛犸象群，比想象的更多。",l:"全部猎杀",r:"只猎老弱",
+   L:{eng:14,eco:-10},R:{eco:8,kno:4,eng:4}},
+  {q:"孩子在岩壁上画下了星图。",l:"凿刻下来，代代相传",r:"巫师称其为亵渎",
+   L:{kno:12,eco:-2},R:{soc:-8,kno:-10}},
+  {q:"谷地的猎物越来越少了。",l:"举族迁徙，寻找新的河谷",r:"死守祖地",
+   L:{eng:8,soc:-6,eco:4},R:{soc:10,eco:-10}},
+  {q:"邻落的火种熄灭了，他们来敲门。",l:"开门，分火",r:"驱赶他们",
+   L:{eng:-6,soc:14},R:{soc:-16,eng:4}},
+  {q:"老萨满梦见了一场大洪水。",l:"信他，举族迁往高处",r:"驱逐散布恐慌之人",
+   L:{eco:10,eng:-4},R:{soc:-10,kno:-4}},
+  {q:"夜，比往常更长。",l:"围火而坐，讲故事",r:"沉默睡觉，保存体力",
+   L:{kno:8,soc:6,eng:-8},R:{eng:6,kno:-8}},
+ ]},
+ {cn:"农耕纪元",en:"SOIL AGE",bg:"#F3F3EC",tint:[142,150,118],
+  img:imgURL("endless minimalist wheat field rows receding into morning fog, one tiny farmer figure far away","portrait_4_3"),
+  cards:[
+  {q:"河谷的淤泥，异常肥沃。",l:"全村改种谷物",r:"一半地留给狩猎",
+   L:{eng:12,eco:-6},R:{eco:8,eng:4}},
+  {q:"谷仓满了，有人提议把数字刻下来。",l:"发明文字",r:"「记性，够用了」",
+   L:{kno:14,soc:4},R:{kno:-10}},
+  {q:"邻村颗粒无收，正在挨饿。",l:"开仓放粮",r:"加固粮仓的门闩",
+   L:{soc:12,eng:-10},R:{soc:-14,eng:6}},
+  {q:"有人驯服了野牛。",l:"套上犁",r:"放归山林",
+   L:{eng:10,eco:-6,kno:4},R:{eco:12,eng:-4}},
+  {q:"僧侣承认：历法算错了三天。",l:"改正，重算节气",r:"维持旧历，安定人心",
+   L:{kno:10,soc:-4},R:{soc:8,kno:-8}},
+  {q:"洪水冲垮了田垄。",l:"征役修坝",r:"弃田，另寻新地",
+   L:{soc:8,kno:6,eng:-6},R:{eco:-4,eng:-8,soc:4}},
+  {q:"战利品：一座完整的敌城。",l:"留下它的工匠",r:"夷平它，警示四方",
+   L:{kno:10,soc:-6},R:{soc:-12,eng:6}},
+ ]},
+ {cn:"蒸汽纪元",en:"STEAM AGE",bg:"#F2F1EE",tint:[122,127,132],
+  img:imgURL("industrial factory chimneys silhouette releasing thin smoke into a vast pale grey sky, tiny human figures below","portrait_4_3"),
+  cards:[
+  {q:"黑石头在山里烧得起来。",l:"挖煤，全力开采",r:"封存矿山",
+   L:{eng:16,eco:-14},R:{eco:10,eng:-6}},
+  {q:"蒸汽机在小镇彻夜轰鸣。",l:"建工厂带",r:"立法：夜间停机",
+   L:{kno:8,eng:10,eco:-10,soc:-6},R:{soc:10,eng:-6}},
+  {q:"童工在纺纱机旁睡着了。",l:"立法禁止童工",r:"「产量要紧」",
+   L:{soc:12,eng:-8},R:{soc:-16,eng:10}},
+  {q:"铁路勘测线画到了荒野深处。",l:"全线贯通",r:"停在河边，修建码头",
+   L:{eng:8,eco:-10,kno:6},R:{eco:8,eng:-4,soc:-4}},
+  {q:"煤烟呛哭了半座城的人。",l:"烟囱加装滤网",r:"「这是繁荣的味道」",
+   L:{eng:-6,eco:12},R:{soc:-6,eco:-12,eng:6}},
+  {q:"电报线缆跨过了大洋。",l:"接通整个世界",r:"「隔洋而治，更为稳妥」",
+   L:{kno:12,soc:8,eng:-4},R:{soc:-8,kno:-6}},
+  {q:"学者宣布：人类，万岁。",l:"记下他的警告，一并发表",r:"印刷一万份传单",
+   L:{kno:10,soc:-2},R:{eng:4,soc:-10,kno:-8}},
+ ]},
+ {cn:"硅纪元",en:"SILICON AGE",bg:"#F0F2F3",tint:[108,140,162],
+  img:imgURL("endless rows of dark server racks in a data center, tiny blue led lights, thin fog","portrait_4_3"),
+  cards:[
+  {q:"沙漠底下，埋着黑色的河。",l:"钻井开采",r:"封存油藏，研究替代",
+   L:{eng:16,eco:-12},R:{eco:10,kno:4,eng:-4}},
+  {q:"沙漠深处升起第一朵蘑菇云。",l:"写入条约，限制使用",r:"向全世界展示它",
+   L:{soc:10,kno:8},R:{soc:-12,eco:-8,kno:6}},
+  {q:"计算机开始自己下棋了。",l:"投资它",r:"拔掉电源",
+   L:{kno:14,eng:6,soc:-6},R:{kno:-12,soc:4}},
+  {q:"平流层破了一个洞。",l:"全球禁用氟利昂",r:"再观察十年",
+   L:{soc:8,eco:14,eng:-8},R:{eco:-16,soc:-4}},
+  {q:"互联网把所有人连在了一起。",l:"自由接入",r:"全面实名登记",
+   L:{kno:10,soc:8,eco:-2,eng:-2},R:{soc:-10,kno:6}},
+  {q:"气候大会开到第十三个年头。",l:"签署硬性减排",r:"各自为政",
+   L:{eco:16,eng:-14,soc:-4},R:{eco:-14,eng:6,soc:-8}},
+  {q:"人口抵达八十亿。",l:"投资教育与女性",r:"奖励生育",
+   L:{kno:12,soc:8,eco:-4},R:{eng:6,eco:-12,soc:-6}},
+ ]},
+ {cn:"曙光纪元",en:"DAWN AGE",bg:"#F1F1F4",tint:[128,120,164],
+  img:imgURL("minimalist futuristic city skyline at cold dawn, a single glowing fusion ring hovering above it","portrait_4_3"),
+  cards:[
+  {q:"AI 请求接入电网。",l:"接入，共享算力",r:"物理隔离它",
+   L:{kno:16,eng:8,soc:-10},R:{kno:-8,soc:12,eng:-4}},
+  {q:"聚变点火，成功了。",l:"开放全部专利",r:"专利垄断",
+   L:{eng:18,kno:8,eco:-4},R:{eng:10,soc:-14}},
+  {q:"火星基地申请追加预算。",l:"成为多行星物种",r:"先修好地球",
+   L:{kno:14,eng:-8,soc:-6},R:{eco:12,soc:8,eng:-6}},
+  {q:"数据中心能耗超过了一个国家。",l:"强制能效标准",r:"让它们自建电站",
+   L:{eng:-4,eco:10,kno:6},R:{eng:10,eco:-12}},
+  {q:"一种古人类的语言，只剩十个人会讲。",l:"数字复活它",r:"「历史就该过去」",
+   L:{kno:8,soc:6},R:{kno:-10,eng:4}},
+  {q:"地球工程方案：往平流层撒反光粉。",l:"小规模试验",r:"否决，风险不可控",
+   L:{eco:10,kno:6,soc:-4},R:{eco:-8,soc:6}},
+  {q:"最后一问：电量表，交给谁？",l:"集体审议",r:"交给超级智能",
+   L:{soc:12,kno:8,eng:-4},R:{eng:10,kno:10,soc:-12}},
+ ]},
+];
+const TOTAL_CARDS=35;
+const DEATHS={
+  eng:{lo:["火，最后一次熄灭。","FIRE DIES"],"hi":["熔炉炸膛。文明在过载中自燃。","OVERHEATED"]},
+  eco:{lo:["土地不再回应播种的手。","SILENT EARTH"],"hi":["森林吞没了城市。","OVERGROWN"]},
+  kno:{lo:["最后一位识字的人死去了。","THE LAST READER"],"hi":["真相太多，多到无人再信。","NOISE DROWNED"]},
+  soc:{lo:["每一座城，都成了一座孤岛。","ALL ISLANDS"],"hi":["绝对一致——意味着无人思考。","HIVE MIND"]},
+};
+
+/* ================= 工具 ================= */
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const REDUCED=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
+const fmtYear=y=>y<0?"前 "+(-y):"公元 "+y;
+const CELLC={mist:"#5E7C8B",moss:"#7C9A82",rust:"#B3695C",ink:"#1B1E20"};
+function safeImg(imgEl,boxEl){imgEl.addEventListener("error",()=>boxEl&&(boxEl.style.display="none"));}
+function retrigger(el,cls){el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls);}
+function flash(color){
+  if(REDUCED)return;
+  const f=$("#flash");f.style.background=color;retrigger(f,"pulse");
+}
+
+/* ================= 尘埃粒子 ================= */
+const dustCv=$("#dust"),dctx=dustCv.getContext("2d");
+let P=[],dustTint=[196,120,92];
+function dustResize(){
+  dustCv.width=innerWidth;dustCv.height=innerHeight;
+  P=Array.from({length:26},()=>({
+    x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+    r:.6+Math.random()*1.3,vx:(Math.random()-.5)*.14,vy:-.03-Math.random()*.09,
+    a:.05+Math.random()*.1,ph:Math.random()*Math.PI*2,
+  }));
+}
+function setDust(i){dustTint=EPOCHS[i].tint;}
+function dustLoop(t){
+  dctx.clearRect(0,0,dustCv.width,dustCv.height);
+  const[r,g,b]=dustTint;
+  for(const p of P){
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.y<-4){p.y=innerHeight+4;p.x=Math.random()*innerWidth;}
+    if(p.x<-4)p.x=innerWidth+4;if(p.x>innerWidth+4)p.x=-4;
+    const a=p.a*(0.7+0.3*Math.sin(t/1400+p.ph));
+    dctx.beginPath();dctx.arc(p.x,p.y,p.r,0,7);
+    dctx.fillStyle=`rgba(${r},${g},${b},${a.toFixed(3)})`;dctx.fill();
+  }
+  requestAnimationFrame(dustLoop);
+}
+if(!REDUCED){dustResize();addEventListener("resize",dustResize);requestAnimationFrame(dustLoop);}
+
+/* ================= 状态 ================= */
+let st=null,busy=false,hintDone=false,lastTotal=-1;
+function newState(){return{idx:0,eng:50,eco:55,kno:45,soc:50,decks:EPOCHS.map(e=>shuffle([...e.cards.keys()]))};}
+const curEpoch=()=>EPOCHS[Math.floor(st.idx/7)];
+const curCard=()=>{const e=Math.floor(st.idx/7);return EPOCHS[e].cards[st.decks[e][st.idx%7]];};
+const yearOf=idx=>Math.round(-8000+(idx/(TOTAL_CARDS-1))*10200);
+const total=()=>Math.round((st.eng+st.eco+st.kno+st.soc)/4);
+
+/* ================= HUD ================= */
+function buildCells(){
+  $("#cells").innerHTML=DOM.map(d=>`
+    <div class="cell" id="cell-${d.k}">
+      <div class="k"><span>${d.cn}</span><b id="v-${d.k}">${d.v}</b></div>
+      <div class="bar"><i id="b-${d.k}" style="width:${d.v}%"></i></div>
+    </div>`).join("");
+}
+function buildDots(){
+  $("#dots").innerHTML=Array.from({length:TOTAL_CARDS},(_,i)=>
+    `<span data-i="${i}" class="${i%7===0?"ep":""}"></span>`).join("");
+}
+function renderHud(animDom){
+  const t=total();
+  const tn=$("#total-num");
+  tn.innerHTML=`${t}<i>%</i>`;
+  tn.style.color=t<25?CELLC.rust:"inherit";
+  if(t!==lastTotal&&lastTotal>=0&&!REDUCED)retrigger(tn,"tick");
+  lastTotal=t;
+  const tb=$("#total-bar b");
+  tb.style.width=t+"%";
+  tb.style.backgroundColor=t<25?CELLC.rust:CELLC.ink;
+  $("#yearTag").textContent=fmtYear(yearOf(st.idx));
+  const e=curEpoch();
+  $("#epochTag").textContent=`EPOCH ${String(Math.floor(st.idx/7)+1).padStart(2,"0")} · ${e.cn} ${e.en}`;
+  document.querySelectorAll("#dots span").forEach(s=>{
+    const i=+s.dataset.i;
+    s.classList.toggle("on",i===st.idx);
+    s.classList.toggle("past",i<st.idx);
+  });
+  for(const d of DOM){
+    const v=st[d.k];
+    document.getElementById("v-"+d.k).textContent=v;
+    const b=document.getElementById("b-"+d.k);
+    b.style.width=v+"%";
+    b.style.backgroundColor=v<=20?CELLC.rust:v>=80?CELLC.moss:CELLC.mist;
+    document.getElementById("cell-"+d.k).classList.toggle("crit",v<=10||v>=92);
+    if(animDom&&animDom[d.k]){
+      const c=document.getElementById("cell-"+d.k);
+      const f=document.createElement("span");
+      f.className="fd";
+      f.style.color=animDom[d.k]>0?CELLC.moss:CELLC.rust;
+      f.textContent=(animDom[d.k]>0?"+":"")+animDom[d.k];
+      c.appendChild(f);setTimeout(()=>f.remove(),1100);
+      retrigger(c,"surge");retrigger(b,"surge");
+    }
+  }
+}
+function setAmbient(i){document.body.style.background=EPOCHS[i].bg;setDust(i);}
+function animateTo(target,cb){
+  const from={...st};const T=REDUCED?0:550,t0=performance.now();
+  (function f(now){
+    const p=T?clamp((now-t0)/T,0,1):1,e=1-Math.pow(1-p,3);
+    st.eng=Math.round(from.eng+(target.eng-from.eng)*e);
+    st.eco=Math.round(from.eco+(target.eco-from.eco)*e);
+    st.kno=Math.round(from.kno+(target.kno-from.kno)*e);
+    st.soc=Math.round(from.soc+(target.soc-from.soc)*e);
+    renderHud();
+    if(p<1)requestAnimationFrame(f);else cb&&cb();
+  })(t0);
+}
+
+/* ================= 卡片流 ================= */
+function spawnCard(){
+  const stack=$("#stack");
+  [...stack.querySelectorAll(".card")].slice(0,3).forEach(c=>c.remove());
+  stack.querySelectorAll(".card").forEach((c,i)=>{c.className="card "+(i===0?"next":"next2");});
+  const card=curCard(),e=curEpoch();
+  const el=document.createElement("div");
+  el.className="card";
+  el.innerHTML=`
+    <div class="c-top"><span>NO.${String(st.idx+1).padStart(2,"0")} / ${TOTAL_CARDS}</span><span>${fmtYear(yearOf(st.idx))}</span></div>
+    <div class="c-img"><img alt="${e.cn}"><span class="tag">${e.en}</span></div>
+    <div class="c-epoch">EPOCH ${String(Math.floor(st.idx/7)+1).padStart(2,"0")} · ${e.cn} ${e.en}</div>
+    <h2>${card.q}</h2>
+    <div class="c-src">${card.src||""}</div>
+    <div class="stamp" id="stampL">放 电 −</div>
+    <div class="stamp" id="stampR" style="border-color:var(--moss);color:var(--moss)">充 电 +</div>`;
+  const img=el.querySelector("img");
+  img.src=e.img;safeImg(img,el.querySelector(".c-img"));
+  stack.insertBefore(el,stack.firstChild);
+  retrigger($("#yearTag"),"tick");
+  $("#optLT").textContent=card.l;
+  $("#optRT").textContent=card.r;
+  if(st.idx===0&&!hintDone)$("#hint").classList.add("show");
+  bindDrag(el);
+}
+function applyChoice(side){
+  if(busy)return;busy=true;
+  $("#hint").classList.add("gone");
+  const card=curCard();
+  const delta=side==="L"?card.L:card.R;
+  const target={},anim={};
+  for(const d of DOM){
+    const t=clamp(st[d.k]+(delta[d.k]||0),0,100);
+    target[d.k]=t;
+    if(delta[d.k])anim[d.k]=delta[d.k];
+  }
+  // 飞出（含运动模糊）
+  const el=$("#stack .card");
+  const outX=(side==="L"?-1:1)*(window.innerWidth*.75);
+  if(!REDUCED){
+    el.style.transition="transform .5s cubic-bezier(.3,.5,.4,1),opacity .5s,filter .5s";
+    el.style.transform=`translate(${outX}px,${st.idx%2?-70:70}px) rotate(${side==="L"?-26:26}deg) scale(.92)`;
+    el.style.opacity="0";el.style.filter="blur(3px)";
+  }
+  setTimeout(()=>{
+    animateTo(target,()=>{
+      const death=checkDeath(target);
+      if(death){
+        // 死亡序列：红闪 + 震屏 + 崩溃格
+        flash("rgba(179,105,92,.32)");
+        $("#app").classList.add("shake");
+        setTimeout(()=>$("#app").classList.remove("shake"),620);
+        const b=document.getElementById("b-"+death.dom);
+        b.style.backgroundColor=CELLC.rust;
+        retrigger(document.getElementById("cell-"+death.dom),"crash");
+        endGame(death);return;
+      }
+      st.idx++;
+      if(st.idx>=TOTAL_CARDS){flash("rgba(124,154,130,.3)");endGame(null);return;}
+      const go=()=>{busy=false;spawnCard();};
+      if(st.idx%7===0)showCurtain(curEpoch(),go);else go();
+    });
+  },REDUCED?0:440);
+}
+function checkDeath(t){
+  for(const d of DOM){
+    if(t[d.k]<=0)return{dom:d.k,hi:false};
+    if(t[d.k]>=100)return{dom:d.k,hi:true};
+  }
+  return null;
+}
+
+/* 拖拽：视差 + 倾斜 + 电流描边，监听挂 window */
+function bindDrag(el){
+  let sx=0,dx=0,drag=false;
+  const img=el.querySelector(".c-img img");
+  const move=e=>{
+    if(!drag)return;
+    dx=e.clientX-sx;
+    el.style.transform=
+      `perspective(900px) translateX(${dx}px) rotate(${dx*.07}deg) rotateY(${dx*.035}deg)`;
+    el.style.borderColor=dx>34?"var(--moss)":dx<-34?"var(--mist)":"var(--line)";
+    if(img)img.style.transform=`scale(1.06) translateX(${-dx*.06}px)`;
+    $("#optL").classList.toggle("hot",dx<-34);
+    $("#optR").classList.toggle("hot",dx>34);
+    el.querySelector("#stampL")?.classList.toggle("on",dx<-34);
+    el.querySelector("#stampR")?.classList.toggle("on",dx>34);
+    el.classList.toggle("charging",dx>34);
+  };
+  const finish=()=>{
+    removeEventListener("pointermove",move);
+    removeEventListener("pointerup",up);
+    removeEventListener("pointercancel",up);
+  };
+  const up=()=>{
+    if(!drag)return;
+    drag=false;finish();
+    $("#optL").classList.remove("hot");$("#optR").classList.remove("hot");
+    el.classList.remove("charging");
+    el.querySelector("#stampL")?.classList.remove("on");
+    el.querySelector("#stampR")?.classList.remove("on");
+    if(!hintDone){hintDone=true;$("#hint").classList.add("gone");}
+    if(dx<-70){dx=0;applyChoice("L");}
+    else if(dx>70){dx=0;applyChoice("R");}
+    else{
+      el.style.transition="transform .45s cubic-bezier(.34,1.35,.4,1),border-color .3s";
+      el.style.transform="";el.style.borderColor="var(--line)";
+      if(img)img.style.transform="scale(1.06)";
+      dx=0;
+    }
+  };
+  el.addEventListener("pointerdown",e=>{
+    if(busy)return;
+    drag=true;sx=e.clientX;dx=0;
+    try{el.setPointerCapture(e.pointerId);}catch(_){}
+    el.style.transition="none";
+    addEventListener("pointermove",move);
+    addEventListener("pointerup",up);
+    addEventListener("pointercancel",up);
+  });
+}
+
+/* ================= 纪元幕布 ================= */
+function showCurtain(e,cb){
+  $("#curCn").textContent=e.cn;
+  $("#curEn").textContent=e.en;
+  const img=$("#curImg"),box=img.parentElement;
+  box.style.display="";
+  img.src=e.img;safeImg(img,box);
+  setAmbient(EPOCHS.indexOf(e));
+  const c=$("#curtain");
+  c.classList.add("on");
+  setTimeout(()=>{c.classList.remove("on");setTimeout(cb,REDUCED?0:420);},REDUCED?600:1650);
+}
+
+/* ================= 结算 ================= */
+function endGame(death){
+  const y=yearOf(Math.min(st.idx,TOTAL_CARDS-1));
+  const t=total();
+  setTimeout(()=>{
+    const oi=$("#out-img");
+    oi.style.display="";
+    oi.classList.remove("reveal");
+    oi.src=death?IMG_END:EPOCHS[EPOCHS.length-1].img;
+    safeImg(oi,oi);
+    requestAnimationFrame(()=>oi.classList.add("reveal"));
+    $("#outK").textContent=death?"SIGNAL LOST · 电量表停摆":"CHARGED · I 型门槛已抵达";
+    $("#outTitle").textContent=death?DEATHS[death.dom][death.hi?"hi":"lo"][0]:"I 型文明，达成。";
+    $("#outSub").innerHTML=death
+      ?`文明于 <em>${fmtYear(y)}</em> 熄灭 · 存续 ${st.idx} 次抉择`
+      :`文明抵达 <em>${fmtYear(y)}</em> · 历经 ${TOTAL_CARDS} 次抉择`;
+    const fc=$("#final-cells");fc.innerHTML="";
+    DOM.forEach((d,i)=>{
+      const row=document.createElement("div");
+      row.className="fc";
+      row.innerHTML=`<span class="fk">${d.cn} ${d.en}</span><span class="fbar"><i></i></span><span class="fv">${st[d.k]}%</span>`;
+      fc.appendChild(row);
+      setTimeout(()=>{
+        row.classList.add("in");
+        const bar=row.querySelector("i");
+        bar.style.background=st[d.k]<=0||st[d.k]>=100?CELLC.rust:CELLC.mist;
+        setTimeout(()=>bar.style.width=st[d.k]+"%",60);
+      },REDUCED?0:300+i*170);
+    });
+    let verdict;
+    if(death)verdict=`终局读数 <b>${t}%</b> —— 电量表不会说谎。`;
+    else if(t>=85)verdict=`终局读数 <b>${t}%</b> · <b>K 0.85</b><br>I 型预备文明：电量表上，你们从未失衡。`;
+    else if(t>=70)verdict=`终局读数 <b>${t}%</b> · <b>K 0.78</b><br>0.8 型文明：一万年，稳稳握在手里。`;
+    else verdict=`终局读数 <b>${t}%</b> · <b>K 0.71</b><br>0.7 型文明：你们和现实的我们，差不多。`;
+    $("#verdict").innerHTML=verdict;
+    const tag=$("#death-tag");
+    if(death){tag.style.display="inline-block";tag.textContent="CAUSE · "+DEATHS[death.dom][death.hi?"hi":"lo"][1];}
+    else tag.style.display="none";
+    $("#outro").classList.add("on");
+  },death?650:250);
+}
+
+/* ================= 启动 / 事件 ================= */
+function preload(){
+  [IMG_HERO,IMG_END,...EPOCHS.map(e=>e.img)].forEach(u=>{const i=new Image();i.src=u;});
+}
+function startGame(){
+  st=newState();busy=false;hintDone=false;lastTotal=-1;
+  buildCells();buildDots();renderHud();
+  $("#intro").classList.remove("on");
+  $("#outro").classList.remove("on");
+  [...document.querySelectorAll("#stack .card")].forEach(c=>c.remove());
+  $("#hint").classList.remove("show","gone");
+  setAmbient(0);
+  preload();
+  // 电量从 0 充到初值（开机加载动效）
+  const target={eng:st.eng,eco:st.eco,kno:st.kno,soc:st.soc};
+  st.eng=st.eco=st.kno=st.soc=0;renderHud();
+  setTimeout(()=>{
+    animateTo(target,()=>{busy=false;spawnCard();});
+  },REDUCED?0:500);
+}
+$("#startBtn").addEventListener("click",e=>{
+  e.target.disabled=true;e.target.textContent="CALIBRATING…";
+  setTimeout(()=>{e.target.disabled=false;e.target.textContent="接入电量表 · START";startGame();},REDUCED?0:650);
+});
+$("#againBtn").addEventListener("click",()=>{$("#outro").classList.remove("on");startGame();});
+$("#optL").addEventListener("click",()=>applyChoice("L"));
+$("#optR").addEventListener("click",()=>applyChoice("R"));
+$("#rulesBtn").addEventListener("click",()=>$("#rules").classList.add("on"));
+$("#rulesX").addEventListener("click",()=>$("#rules").classList.remove("on"));
+$("#rules").addEventListener("click",e=>{if(e.target.id==="rules")$("#rules").classList.remove("on");});
+addEventListener("keydown",e=>{
+  if(!st||busy)return;
+  if(e.key==="ArrowLeft")applyChoice("L");
+  if(e.key==="ArrowRight")applyChoice("R");
+  if(e.key==="Escape")$("#rules").classList.remove("on");
+});
+/* 初始化静态内容 */
+buildCells();buildDots();
+$("#heroImg").src=IMG_HERO;safeImg($("#heroImg"),$("#heroImg"));
+</script>
+</body>
+</html>
