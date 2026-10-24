@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>文明电量表 · CIVILIZATION BATTERY</title>
+<meta name="description" content="用北欧冷淡风的方式，测量人类文明的剩余电量。Trae 盲盒挑战赛 第 2 组。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&family=IBM+Plex+Mono:wght@300;400&family=Noto+Sans+SC:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F4F1;
+  --paper-2:#EDEDE9;
+  --ink:#1B1E20;
+  --mut:#8B9298;
+  --mut-2:#B7BCB9;
+  --line:#D9DBD5;
+  --mist:#5E7C8B;      /* 雾蓝 */
+  --moss:#7C9A82;      /* 电量绿 */
+  --rust:#B3695C;      /* 低电锈红 */
+  --sans:"Space Grotesk","Noto Sans SC","Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-weight:300;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+::selection{background:var(--mist);color:#fff}
+
+/* ---------- 开机校准遮罩 ---------- */
+#boot{
+  position:fixed;inset:0;z-index:200;background:var(--paper);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  transition:opacity .7s ease, visibility .7s;
+}
+#boot.done{opacity:0;visibility:hidden}
+#boot .b-label{font-family:var(--mono);font-size:11px;letter-spacing:.35em;color:var(--mut)}
+#boot .b-track{width:180px;height:1px;background:var(--line);position:relative;overflow:hidden}
+#boot .b-track i{position:absolute;left:0;top:0;height:100%;width:40%;background:var(--ink);animation:bootSlide 1.1s ease-in-out infinite}
+@keyframes bootSlide{0%{left:-40%}100%{left:100%}}
+
+/* ---------- 顶栏 ---------- */
+header{
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding:22px 28px;border-bottom:1px solid var(--line);
+}
+header .brand{font-family:var(--mono);font-size:11px;letter-spacing:.3em}
+header .brand b{font-weight:400;color:var(--ink)}
+header .brand span{color:var(--mut);margin-left:10px}
+header .meta{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--mut)}
+
+/* ---------- 通用版式 ---------- */
+.wrap{max-width:1060px;margin:0 auto;padding:0 28px}
+section{border-bottom:1px solid var(--line)}
+.sec-head{
+  display:flex;align-items:baseline;gap:16px;
+  padding:44px 0 10px;
+}
+.sec-head .no{font-family:var(--mono);font-size:11px;color:var(--mut);letter-spacing:.2em}
+.sec-head h2{font-size:13px;font-weight:400;letter-spacing:.45em}
+.sec-head .en{font-family:var(--mono);font-size:10px;color:var(--mut-2);letter-spacing:.3em;margin-left:auto}
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.2,.6,.2,1),transform .9s cubic-bezier(.2,.6,.2,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- HERO ---------- */
+.hero{padding:64px 0 30px;text-align:center}
+.hero .kicker{
+  font-family:var(--mono);font-size:10px;letter-spacing:.5em;color:var(--mut);
+  margin-bottom:38px;
+}
+.gauge-box{position:relative;display:inline-block}
+.gauge-box svg{display:block;width:min(84vw,520px);height:auto;margin:0 auto}
+.g-readout{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);text-align:center}
+.g-readout .num{font-family:var(--mono);font-weight:300;font-size:clamp(44px,9vw,64px);letter-spacing:-.02em;line-height:1}
+.g-readout .num i{font-style:normal;font-size:.45em;color:var(--mut)}
+.g-readout .cap{margin-top:10px;font-size:12px;letter-spacing:.5em;color:var(--ink);font-weight:400}
+.g-readout .sub{margin-top:8px;font-size:10px;color:var(--mut);letter-spacing:.15em}
+.status{
+  margin-top:34px;display:inline-flex;align-items:center;gap:10px;
+  border:1px solid var(--line);padding:9px 18px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--mut);
+}
+.status .dot{width:6px;height:6px;border-radius:50%;background:var(--rust);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.scroll-hint{margin:44px 0 26px;font-family:var(--mono);font-size:10px;letter-spacing:.4em;color:var(--mut-2)}
+.scroll-hint::after{content:"";display:block;width:1px;height:34px;background:var(--mut-2);margin:12px auto 0;animation:drip 1.8s ease-in-out infinite}
+@keyframes drip{0%{transform:scaleY(0);transform-origin:top}55%{transform:scaleY(1);transform-origin:top}56%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+
+/* ---------- 01 时间轴 ---------- */
+#timeline{padding-bottom:70px}
+.tl-readout{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  border:1px solid var(--line);border-left:0;border-right:0;
+  margin:26px 0 8px;
+}
+.tl-cell{padding:18px 12px;border-right:1px solid var(--line);text-align:center}
+.tl-cell:last-child{border-right:0}
+.tl-cell .k{font-family:var(--mono);font-size:9px;letter-spacing:.28em;color:var(--mut);margin-bottom:10px}
+.tl-cell .v{font-family:var(--mono);font-size:clamp(15px,2.4vw,21px);font-weight:300}
+.tl-cell .v.hot{color:var(--rust)}
+.tl-cell .v.slide-in{animation:vIn .45s cubic-bezier(.2,.6,.2,1)}
+@keyframes vIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.tl-stage{position:relative;height:150px;margin-top:30px;touch-action:none;cursor:ew-resize;user-select:none;-webkit-user-select:none}
+.tl-stage svg{position:absolute;inset:0;width:100%;height:100%}
+.tl-now-tag{
+  position:absolute;top:-2px;transform:translateX(-50%);
+  font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--rust);
+}
+.tl-hint{margin-top:14px;font-family:var(--mono);font-size:10px;letter-spacing:.25em;color:var(--mut-2);text-align:center}
+.tl-note{margin-top:34px;font-size:11px;color:var(--mut);line-height:2;max-width:620px}
+
+/* ---------- 02 领域电量 ---------- */
+#domains{padding-bottom:70px}
+.d-row{
+  display:grid;grid-template-columns:64px 150px 1fr 110px 74px;
+  gap:18px;align-items:center;
+  padding:26px 0;border-bottom:1px solid var(--line);
+}
+.d-row:first-of-type{border-top:1px solid var(--line);margin-top:26px}
+.d-row .idx{font-family:var(--mono);font-size:10px;color:var(--mut);letter-spacing:.2em}
+.d-row .name{font-size:14px;font-weight:400;letter-spacing:.3em}
+.d-row .name span{display:block;font-family:var(--mono);font-size:9px;color:var(--mut-2);letter-spacing:.25em;margin-top:5px;font-weight:300}
+.d-bar{height:1px;background:var(--line);position:relative}
+.d-bar .fill{
+  position:absolute;left:0;top:-1px;height:3px;width:0;
+  background:var(--ink);
+  transition:width 1.5s cubic-bezier(.25,.7,.2,1);
+}
+.d-bar .fill.low{background:var(--rust)}
+.d-row .pct{font-family:var(--mono);font-size:19px;text-align:right}
+.d-row .pct i{font-style:normal;font-size:11px;color:var(--mut)}
+.d-more{
+  font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--mut);
+  background:none;border:1px solid var(--line);padding:8px 0;cursor:pointer;
+  transition:border-color .3s,color .3s;
+}
+.d-more:hover{border-color:var(--ink);color:var(--ink)}
+.d-note{padding:14px 0 0;font-size:11px;color:var(--mut);line-height:2}
+
+/* ---------- 03 电池墙 ---------- */
+#cells{padding-bottom:80px}
+.cells-grid{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:22px;margin-top:44px;
+}
+.cell{
+  border:1px solid var(--line);padding:22px 16px 18px;background:var(--paper);
+  transition:border-color .35s;
+}
+.cell:hover{border-color:var(--mut-2)}
+.cell .cap-nub{width:26px;height:7px;border:1px solid var(--line);border-bottom:0;margin:0 auto 0;border-radius:3px 3px 0 0}
+.cell .tube{
+  height:210px;border:1px solid var(--ink);border-top:0;position:relative;overflow:hidden;
+  background:linear-gradient(90deg,transparent 0 8%,var(--paper-2) 8% 92%,transparent 92%);
+}
+.cell .liquid{
+  position:absolute;left:0;right:0;bottom:0;height:0;
+  background:var(--mist);
+  transition:height 2.2s cubic-bezier(.25,.7,.2,1);
+  opacity:.85;
+}
+.cell.low .liquid{background:var(--rust)}
+.cell.low .tube{border-color:var(--rust)}
+.cell .liquid::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:1px;background:var(--ink);
+  animation:wave 3.2s ease-in-out infinite;
+}
+@keyframes wave{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+.cell .lv-tag{
+  position:absolute;top:10px;left:0;right:0;text-align:center;
+  font-family:var(--mono);font-size:9px;letter-spacing:.35em;color:var(--mut-2);
+}
+.cell.low .lv-tag{color:var(--rust);animation:pulse 1.6s infinite}
+.cell .cname{margin-top:16px;text-align:center;font-size:12px;font-weight:400;letter-spacing:.35em}
+.cell .cyear{margin-top:8px;text-align:center;font-family:var(--mono);font-size:21px;font-weight:300}
+.cell .cyear i{font-style:normal;font-size:10px;color:var(--mut);margin-left:2px}
+.cell .csrc{margin-top:6px;text-align:center;font-family:var(--mono);font-size:8px;color:var(--mut-2);letter-spacing:.12em}
+.cells-note{margin-top:30px;font-size:11px;color:var(--mut);line-height:2}
+
+/* ---------- 弹窗 ---------- */
+#modal{
+  position:fixed;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(244,244,241,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  opacity:0;visibility:hidden;transition:opacity .35s,visibility .35s;
+}
+#modal.open{opacity:1;visibility:visible}
+.m-card{
+  width:min(620px,100%);max-height:82vh;overflow:auto;
+  background:var(--paper);border:1px solid var(--line);border-bottom:0;
+  padding:34px 34px 40px;
+  transform:translateY(46px);transition:transform .45s cubic-bezier(.2,.7,.2,1);
+}
+#modal.open .m-card{transform:none}
+.m-head{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line);padding-bottom:18px}
+.m-head .no{font-family:var(--mono);font-size:10px;color:var(--mut);letter-spacing:.2em}
+.m-head h3{font-size:15px;font-weight:400;letter-spacing:.4em}
+.m-head .pct{margin-left:auto;font-family:var(--mono);font-size:24px;font-weight:300}
+.m-close{
+  position:absolute;top:14px;right:16px;width:36px;height:36px;
+  background:none;border:1px solid var(--line);cursor:pointer;color:var(--mut);
+  font-size:14px;line-height:1;transition:border-color .3s,color .3s;
+}
+.m-close:hover{border-color:var(--ink);color:var(--ink)}
+.m-card{position:relative}
+.m-rows{margin-top:8px}
+.m-row{
+  display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:15px 0;border-bottom:1px solid var(--paper-2);
+  opacity:0;transform:translateY(10px);
+}
+.m-row.in{animation:vIn .5s cubic-bezier(.2,.6,.2,1) forwards}
+.m-row .mk{font-size:12px;color:var(--ink);letter-spacing:.12em}
+.m-row .mk small{display:block;font-family:var(--mono);font-size:9px;color:var(--mut-2);letter-spacing:.15em;margin-top:4px}
+.m-row .mv{font-family:var(--mono);font-size:15px}
+.m-row .mv span{font-size:10px;color:var(--mut);margin-left:5px}
+.m-row.skel .mk,.m-row.skel .mv{background:linear-gradient(90deg,var(--paper-2) 25%,#e2e2dd 45%,var(--paper-2) 65%);background-size:220% 100%;animation:shimmer 1s linear infinite;border-radius:2px}
+.m-row.skel .mk{width:130px;height:12px}
+.m-row.skel .mv{width:70px;height:14px}
+@keyframes shimmer{from{background-position:120% 0}to{background-position:-120% 0}}
+.m-foot{margin-top:22px;font-size:10px;color:var(--mut-2);letter-spacing:.1em;line-height:1.9}
+
+/* ---------- 结语 ---------- */
+#end{padding:110px 0 90px;text-align:center;border-bottom:0}
+#end .big{
+  font-size:clamp(24px,5vw,42px);font-weight:200;letter-spacing:.14em;line-height:1.75;
+}
+#end .big em{font-style:normal;color:var(--mist)}
+#end .sig{margin-top:44px;font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--mut);line-height:2.4}
+
+/* ---------- 响应式 ---------- */
+@media (max-width:820px){
+  header{padding:16px 18px}
+  header .meta{display:none}
+  .wrap{padding:0 18px}
+  .sec-head h2{letter-spacing:.3em}
+  .tl-readout{grid-template-columns:repeat(3,1fr)}
+  .tl-cell{border-bottom:1px solid var(--line)}
+  .tl-cell:nth-child(3n){border-right:0}
+  .tl-cell:nth-child(n+4){border-bottom:0}
+  .d-row{grid-template-columns:40px 1fr 74px;grid-template-rows:auto auto auto;row-gap:14px}
+  .d-row .idx{grid-row:1}
+  .d-row .name{grid-column:2}
+  .d-row .pct{grid-column:3;grid-row:1}
+  .d-row .d-bar{grid-column:1/-1;grid-row:2}
+  .d-row .d-more{grid-column:1/-1;grid-row:3;justify-self:start;padding:8px 18px}
+  .cells-grid{grid-template-columns:repeat(2,1fr);gap:14px}
+  .cell .tube{height:160px}
+  .m-card{padding:28px 20px 34px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<!-- 开机校准 -->
+<div id="boot" aria-hidden="true">
+  <div class="b-label">CALIBRATING · 文明电量表校准中</div>
+  <div class="b-track"><i></i></div>
+</div>
+
+<header>
+  <div class="brand"><b>CIVILIZATION BATTERY</b><span>文明电量表</span></div>
+  <div class="meta">TRAE 盲盒挑战赛 · 第 2 组 · 文明 × 电量表 × 北欧冷淡风</div>
+</header>
+
+<!-- HERO -->
+<section class="hero wrap" style="border-bottom:0;padding-bottom:0">
+  <div class="kicker">ESTIMATED REMAINING CHARGE · 综合估算</div>
+  <div class="gauge-box reveal">
+    <svg id="gauge" viewBox="0 0 420 252" role="img" aria-label="文明电量仪表盘"></svg>
+    <div class="g-readout">
+      <div class="num"><span id="bigNum">0.0</span><i>%</i></div>
+      <div class="cap">人类文明剩余电量</div>
+      <div class="sub">加权自 能源 · 生态 · 知识 · 协作 四域指标</div>
+    </div>
+  </div>
+  <div class="reveal"><span class="status"><span class="dot"></span>DISCHARGING · 缓慢放电中 · ≈ −0.1% / 年</span></div>
+  <div class="scroll-hint">SCROLL</div>
+</section>
+
+<!-- 01 放电曲线 -->
+<section id="timeline">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="no">01</span><h2>放电曲线</h2><span class="en">DISCHARGE CURVE · 1960—2050</span></div>
+    <div class="tl-readout reveal">
+      <div class="tl-cell"><div class="k">POPULATION 人口</div><div class="v" id="rPop">—</div></div>
+      <div class="tl-cell"><div class="k">ENERGY 全球能耗</div><div class="v" id="rEng">—</div></div>
+      <div class="tl-cell"><div class="k">CO₂ 浓度</div><div class="v hot" id="rCo2">—</div></div>
+      <div class="tl-cell"><div class="k">KARDASHEV 卡氏等级</div><div class="v" id="rKar">—</div></div>
+      <div class="tl-cell"><div class="k">CIV. LEVEL 文明电量</div><div class="v" id="rLvl">—</div></div>
+    </div>
+    <div class="tl-stage reveal" id="tlStage" role="slider" aria-label="拖拽查看 1960 至 2050 年的文明电量" aria-valuemin="1960" aria-valuemax="2050" tabindex="0">
+      <svg id="tlSvg"></svg>
+    </div>
+    <div class="tl-hint" id="tlHint">← 按住拖拽 · DRAG TO SCRUB →</div>
+    <p class="tl-note reveal">过去六十年，知识与协作持续充电，能源与生态持续放电；净读数自 88% 缓慢降至 70.8%。2050 年的读数并非预言，而是按当前速率的线性外推——仪表盘只负责诚实。</p>
+  </div>
+</section>
+
+<!-- 02 四域电量 -->
+<section id="domains">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="no">02</span><h2>四域电量</h2><span class="en">FOUR CELLS · DETAIL</span></div>
+    <div id="dList"></div>
+    <p class="d-note reveal">读数由公开指标归一化后加权得出，为示意估算，口径见各域详情。</p>
+  </div>
+</section>
+
+<!-- 03 电池墙 -->
+<section id="cells">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="no">03</span><h2>正在放电的电池</h2><span class="en">RESERVES · AT CURRENT RATE</span></div>
+    <div class="cells-grid" id="cellGrid"></div>
+    <p class="cells-note reveal">按当前消耗速率测算的可采年限（储采比，R/P）。数字随统计口径浮动，且技术每十年都会改写一次答案——但电池的形状从未变过。</p>
+  </div>
+</section>
+
+<!-- 结语 -->
+<section id="end" class="wrap">
+  <p class="big reveal">电量不足时，<br>充电的是<em>我们</em>。</p>
+  <div class="sig reveal">
+    CIVILIZATION BATTERY · NORDIC EDITION<br>
+    TRAE BLIND-BOX CHALLENGE — GROUP 02<br>
+    数据来源：EI Statistical Review · NOAA · UN · USGS · IEP（示意估算）
+  </div>
+</section>
+
+<!-- 详情弹窗 -->
+<div id="modal" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="m-card">
+    <button class="m-close" id="mClose" aria-label="关闭">✕</button>
+    <div class="m-head"><span class="no" id="mNo">01</span><h3 id="mName">—</h3><span class="pct" id="mPct">—</span></div>
+    <div class="m-rows" id="mRows"></div>
+    <div class="m-foot" id="mFoot"></div>
+  </div>
+</div>
+
+<script>
+/* ================= 数据 ================= */
+const LEVEL = 70.8;
+
+const DOMAINS = [
+  { no:"01", name:"能源", en:"ENERGY", lvl:50, low:true,
+    note:"化石能源仍占一次能源 81.5%，充电速率首次跑赢放电——风与光正在接管电池。",
+    src:"来源：EI Statistical Review 2024 · IRENA",
+    rows:[
+      ["化石能源占比","FOSSIL SHARE","81.5","%","↓ 缓慢"],
+      ["可再生发电占比","RENEWABLES","13.8","%","↑"],
+      ["全球人均能耗","PER CAPITA","22.0","MWh/年","→"],
+      ["锂电池组成本","BATTERY COST","139","$/kWh","↓ −40%/2yr"],
+    ]},
+  { no:"02", name:"生态", en:"ECOLOGY", lvl:57, low:true,
+    note:"九条行星边界已被越过六条。这一格的读数，决定了其他所有格子的有效期。",
+    src:"来源：NOAA · Stockholm Resilience Centre",
+    rows:[
+      ["大气 CO₂ 浓度","CO₂ PPM","424","ppm","↑ +2.5/yr"],
+      ["已越界行星边界","BOUNDARIES","6","/ 9","↑"],
+      ["全球均温异常","ANOMALY","+1.45","°C","↑"],
+      ["剩余 1.5°C 碳预算","CARBON BUDGET","~270","Gt CO₂","↓ ≈7 年"],
+    ]},
+  { no:"03", name:"知识", en:"KNOWLEDGE", lvl:92, low:false,
+    note:"全球识字率 87%，科研人员数量创历史新高——这是充电最快的一格电池。",
+    src:"来源：UNESCO · World Bank",
+    rows:[
+      ["全球识字率","LITERACY","87","%","↑"],
+      ["互联网渗透率","ONLINE","67.9","%","↑"],
+      ["研发投入占 GDP","R&D / GDP","2.27","%","↑"],
+      ["预期受教育年限","SCHOOLING","13.4","年","↑"],
+    ]},
+  { no:"04", name:"协作", en:"COORDINATION", lvl:77, low:false,
+    note:"全球和平指数连续 12 年走低。文明能否续电，取决于这一格是否肯为其他格子让电。",
+    src:"来源：IEP Global Peace Index · EIU",
+    rows:[
+      ["全球和平指数","PEACE INDEX","-0.9","%/年","↓ 连续 12 年"],
+      ["民主指数（均值）","DEMOCRACY","5.29","/10","→"],
+      ["极端贫困率","EXTREME POVERTY","9.0","%","↓"],
+      ["人道援助缺口","AID GAP","56","%","↑"],
+    ]},
+];
+
+const WEIGHTS = {能源:.25, 生态:.20, 知识:.30, 协作:.25};
+
+const CELLS = [
+  { name:"碳预算", en:"1.5°C BUDGET", years:7,  low:true },
+  { name:"石油",   en:"OIL",          years:47, low:true },
+  { name:"天然气", en:"NATURAL GAS",  years:49, low:false },
+  { name:"磷矿",   en:"PHOSPHATE",    years:50, low:false },
+  { name:"煤炭",   en:"COAL",         years:134, low:false },
+];
+const CELL_MAX = 140;
+
+const TL = {
+  years:[1960,1970,1980,1990,2000,2010,2020,2026,2040,2050],
+  pop:[3.0,3.7,4.4,5.3,6.1,6.9,7.8,8.2,9.2,9.7],          // 十亿
+  eng:[45000,62000,79000,96000,118000,143000,161000,172000,205000,230000], // TWh
+  co2:[317,326,339,354,369,388,412,424,455,475],           // ppm
+  kar:[0.64,0.67,0.68,0.70,0.71,0.72,0.7276,0.7285,0.74,0.75],
+  lvl:[88,86,84,82,79,76,72,70.8,63,58],                   // %
+};
+const NOW_YEAR = 2026;
+
+/* ================= 工具 ================= */
+const $=s=>document.querySelector(s);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const easeOut=t=>1-Math.pow(1-t,3);
+const fmt=n=>n.toLocaleString("en-US");
+const REDUCED=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function tlAt(year){ // 线性插值
+  const y=TL.years;
+  year=clamp(year,y[0],y[y.length-1]);
+  let i=0; while(i<y.length-2 && year>y[i+1]) i++;
+  const t=(year-y[i])/(y[i+1]-y[i]);
+  return {
+    pop:lerp(TL.pop[i],TL.pop[i+1],t),
+    eng:lerp(TL.eng[i],TL.eng[i+1],t),
+    co2:lerp(TL.co2[i],TL.co2[i+1],t),
+    kar:lerp(TL.kar[i],TL.kar[i+1],t),
+    lvl:lerp(TL.lvl[i],TL.lvl[i+1],t),
+  };
+}
+
+/* ================= 仪表盘 ================= */
+const NS="http://www.w3.org/2000/svg";
+function el(tag,attrs){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+
+function buildGauge(){
+  const svg=$("#gauge"), cx=210, cy=232, R=178;
+  // 轨道弧
+  svg.appendChild(el("path",{d:`M ${cx-R} ${cy} A ${R} ${R} 0 0 1 ${cx+R} ${cy}`,
+    fill:"none",stroke:"var(--line)","stroke-width":"1",pathLength:"100"}));
+  // 刻度
+  for(let v=0;v<=100;v+=2){
+    const major=v%10===0, a=Math.PI*(1-v/100);
+    const r1=R+(major?10:5), r2=R+(major?20:11);
+    svg.appendChild(el("line",{
+      x1:cx+Math.cos(a)*r1, y1:cy-Math.sin(a)*r1,
+      x2:cx+Math.cos(a)*r2, y2:cy-Math.sin(a)*r2,
+      stroke:major?"var(--mut)":"var(--line)","stroke-width":major?"1":"0.6"}));
+    if(v%25===0){
+      const rt=R+33;
+      const t=el("text",{x:cx+Math.cos(a)*rt, y:cy-Math.sin(a)*rt+3,
+        "text-anchor":"middle",fill:"var(--mut-2)","font-size":"9","font-family":"var(--mono)"});
+      t.textContent=v; svg.appendChild(t);
+    }
+  }
+  // 进度弧
+  svg.appendChild(el("path",{id:"gProg",d:`M ${cx-R} ${cy} A ${R} ${R} 0 0 1 ${cx+R} ${cy}`,
+    fill:"none",stroke:"var(--moss)","stroke-width":"2.5",pathLength:"100",
+    "stroke-dasharray":"0 100"}));
+  // 指针
+  const g=el("g",{id:"gNeedle"});
+  g.appendChild(el("line",{x1:cx,y1:cy,x2:cx-R+34,y2:cy,stroke:"var(--ink)","stroke-width":"1.4"}));
+  g.appendChild(el("circle",{cx:cx-R+34,cy:cy,r:"3",fill:"var(--ink)"}));
+  svg.appendChild(g);
+  svg.appendChild(el("circle",{cx,cy,r:"5",fill:"var(--paper)",stroke:"var(--ink)","stroke-width":"1.2"}));
+  svg.appendChild(el("line",{x1:cx-R-8,y1:cy,x2:cx+R+8,y2:cy,stroke:"var(--line)","stroke-width":"1"}));
+}
+
+function setGauge(v){
+  $("#gProg").setAttribute("stroke-dasharray",`${v} 100`);
+  $("#gNeedle").setAttribute("transform",`rotate(${v*1.8} 210 232)`);
+}
+
+function bootGauge(){
+  if(REDUCED){$("#bigNum").textContent=LEVEL.toFixed(1);setGauge(LEVEL);return;}
+  const T=1900, t0=performance.now();
+  (function f(now){
+    const p=clamp((now-t0)/T,0,1), e=easeOut(p);
+    $("#bigNum").textContent=(LEVEL*e).toFixed(1);
+    setGauge(LEVEL*e);
+    if(p<1)requestAnimationFrame(f);
+  })(t0);
+}
+
+/* ================= 时间轴 ================= */
+const stage=$("#tlStage"), tlSvg=$("#tlSvg");
+let curYear=NOW_YEAR;
+
+function buildTimeline(){
+  const W=()=>stage.clientWidth, H=150, pad=6;
+  const xOf=y=>pad+(y-1960)/(2050-1960)*(W()-pad*2);
+  function render(){
+    tlSvg.innerHTML="";
+    const w=W();
+    // 基线
+    tlSvg.appendChild(el("line",{x1:0,y1:H-28,x2:w,y2:H-28,stroke:"var(--line)","stroke-width":"1"}));
+    // 刻度
+    for(let y=1960;y<=2050;y+=5){
+      const major=(y-1960)%20===0||y===2050, x=xOf(y);
+      tlSvg.appendChild(el("line",{x1:x,y1:H-28,x2:x,y2:H-28-(major?12:6),
+        stroke:major?"var(--mut)":"var(--line)","stroke-width":"1"}));
+      if(major){
+        const t=el("text",{x, y:H-4,"text-anchor":"middle",fill:"var(--mut)","font-size":"10","font-family":"var(--mono)"});
+        t.textContent=y; tlSvg.appendChild(t);
+      }
+    }
+    // 电量折线（细，冷淡）
+    let pts=TL.years.map((y,i)=>`${xOf(y)},${(H-28)-TL.lvl[i]*0.9}`);
+    tlSvg.appendChild(el("polyline",{points:pts.join(" "),fill:"none",stroke:"var(--mist)","stroke-width":"1","stroke-dasharray":"2 4"}));
+    // NOW 标记
+    const nx=xOf(NOW_YEAR);
+    tlSvg.appendChild(el("line",{x1:nx,y1:16,x2:nx,y2:H-28,stroke:"var(--rust)","stroke-width":"1","stroke-dasharray":"1 3"}));
+    const nt=el("text",{x:nx,y:11,"text-anchor":"middle",fill:"var(--rust)","font-size":"9","font-family":"var(--mono)","letter-spacing":"2"});
+    nt.textContent="NOW"; tlSvg.appendChild(nt);
+    // 拖拽指针
+    const cx=xOf(curYear);
+    tlSvg.appendChild(el("line",{id:"tlCaret",x1:cx,y1:22,x2:cx,y2:H-28,stroke:"var(--ink)","stroke-width":"1.4"}));
+    tlSvg.appendChild(el("circle",{cx,cy:H-28,r:"4.5",fill:"var(--paper)",stroke:"var(--ink)","stroke-width":"1.4"}));
+    const yt=el("text",{x:cx,y:36,"text-anchor":"middle",fill:"var(--ink)","font-size":"15","font-family":"var(--mono)"});
+    yt.id="tlYearTag"; yt.textContent=curYear; tlSvg.appendChild(yt);
+  }
+  render();
+  addEventListener("resize",render);
+  // 拖拽（指针事件，兼容触摸）
+  let dragging=false;
+  const toYear=e=>{
+    const r=stage.getBoundingClientRect(), pad=6;
+    return Math.round(1960+clamp((e.clientX-r.left-pad)/(r.width-pad*2),0,1)*90);
+  };
+  stage.addEventListener("pointerdown",e=>{dragging=true;stage.setPointerCapture(e.pointerId);scrub(toYear(e));$("#tlHint").style.opacity=0;});
+  stage.addEventListener("pointermove",e=>dragging&&scrub(toYear(e)));
+  stage.addEventListener("pointerup",()=>dragging=false);
+  stage.addEventListener("keydown",e=>{
+    if(e.key==="ArrowLeft"){scrub(curYear-1);e.preventDefault();}
+    if(e.key==="ArrowRight"){scrub(curYear+1);e.preventDefault();}
+  });
+}
+
+let lastVals=null;
+function scrub(year){
+  curYear=clamp(year,1960,2050);
+  stage.setAttribute("aria-valuenow",curYear);
+  const c=tlSvg.querySelector("#tlCaret"), d=tlSvg.querySelector("#tlYearTag");
+  if(c){
+    const pad=6, x=pad+(curYear-1960)/90*(stage.clientWidth-pad*2);
+    c.setAttribute("x1",x);c.setAttribute("x2",x);
+    d.setAttribute("x",x);d.textContent=curYear;
+  }
+  const v=tlAt(curYear), vals={pop:v.pop,eng:v.eng,co2:v.co2,kar:v.kar,lvl:v.lvl};
+  const first=!lastVals;
+  $("#rPop").textContent=vals.pop.toFixed(1)+" B";
+  $("#rEng").textContent=fmt(Math.round(vals.eng))+" TWh";
+  $("#rCo2").textContent=vals.co2.toFixed(0)+" ppm";
+  $("#rKar").textContent=vals.kar.toFixed(4);
+  $("#rLvl").textContent=vals.lvl.toFixed(1)+" %";
+  if(!first&&!REDUCED)for(const id of["rPop","rEng","rCo2","rKar","rLvl"]){
+    const n=document.getElementById(id);
+    n.classList.remove("slide-in");void n.offsetWidth;n.classList.add("slide-in");
+  }
+  lastVals=vals;
+}
+
+/* ================= 四域电量 ================= */
+function buildDomains(){
+  const list=$("#dList");
+  DOMAINS.forEach((d,i)=>{
+    const row=document.createElement("div");
+    row.className="d-row reveal";
+    row.style.transitionDelay=(i*70)+"ms";
+    row.innerHTML=`
+      <div class="idx">${d.no}</div>
+      <div class="name">${d.name}<span>${d.en}</span></div>
+      <div class="d-bar"><div class="fill ${d.low?"low":""}" data-lvl="${d.lvl}"></div></div>
+      <div class="pct"><span data-num="${d.lvl}">${d.lvl}</span><i>%</i></div>
+      <button class="d-more" data-i="${i}">详情 +</button>`;
+    list.appendChild(row);
+    const note=document.createElement("p");
+    note.className="d-note reveal";
+    note.textContent=d.note;
+    list.appendChild(note);
+  });
+  list.addEventListener("click",e=>{
+    const b=e.target.closest(".d-more");
+    if(b)openModal(DOMAINS[+b.dataset.i]);
+  });
+}
+
+/* ================= 电池墙 ================= */
+function buildCells(){
+  const grid=$("#cellGrid");
+  CELLS.forEach((c,i)=>{
+    const d=document.createElement("div");
+    d.className="cell reveal"+(c.low?" low":"");
+    d.style.transitionDelay=(i*80)+"ms";
+    d.innerHTML=`
+      <div class="cap-nub"></div>
+      <div class="tube">
+        <div class="lv-tag">${c.low?"LOW":"R/P"}</div>
+        <div class="liquid" data-h="${Math.max(4,c.years/CELL_MAX*100)}"></div>
+      </div>
+      <div class="cname">${c.name}</div>
+      <div class="cyear">${c.years}<i>年</i></div>
+      <div class="csrc">${c.en}</div>`;
+    grid.appendChild(d);
+  });
+}
+
+/* ================= 弹窗 ================= */
+const modal=$("#modal");
+let mTimer=null;
+function openModal(d){
+  $("#mNo").textContent=d.no;
+  $("#mName").textContent=d.name+" · "+d.en;
+  $("#mPct").textContent=d.lvl+"%";
+  $("#mFoot").textContent=d.src+" · 电量为公开指标归一化后的示意估算";
+  const rows=$("#mRows");rows.innerHTML="";
+  d.rows.forEach(r=>{
+    const s=document.createElement("div");
+    s.className="m-row skel";
+    s.innerHTML=`<div class="mk"></div><div class="mv"></div>`;
+    rows.appendChild(s);
+  });
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden","false");
+  document.body.style.overflow="hidden";
+  // 模拟数据加载：骨架屏 → 真实数据滑入
+  clearTimeout(mTimer);
+  mTimer=setTimeout(()=>{
+    [...rows.children].forEach((s,i)=>{
+      setTimeout(()=>{
+        const r=d.rows[i];
+        s.classList.remove("skel");
+        s.innerHTML=`<div class="mk">${r[0]}<small>${r[1]}</small></div><div class="mv">${r[2]}<span>${r[3]} ${r[4]}</span></div>`;
+        s.classList.add("in");
+      },i*110);
+    });
+  },REDUCED?0:650);
+}
+function closeModal(){
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden","true");
+  document.body.style.overflow="";
+  clearTimeout(mTimer);
+}
+$("#mClose").addEventListener("click",closeModal);
+modal.addEventListener("click",e=>{if(e.target===modal)closeModal();});
+addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+
+/* ================= 滚动进入 ================= */
+function initReveal(){
+  const io=new IntersectionObserver(es=>{
+    es.forEach(en=>{
+      if(!en.isIntersecting)return;
+      const t=en.target;
+      t.classList.add("in");
+      // 触发条形/液面动画
+      t.querySelectorAll(".fill").forEach(f=>f.style.width=f.dataset.lvl+"%");
+      t.querySelectorAll(".liquid").forEach(l=>l.style.height=l.dataset.h+"%");
+      if(t.classList.contains("d-row"))t.querySelector(".fill").style.width=t.querySelector(".fill").dataset.lvl+"%";
+      io.unobserve(t);
+    });
+  },{threshold:.18});
+  document.querySelectorAll(".reveal").forEach(n=>io.observe(n));
+  // 数字滚动
+  const io2=new IntersectionObserver(es=>{
+    es.forEach(en=>{
+      if(!en.isIntersecting)return;
+      const t=en.target,T=REDUCED?0:900,t0=performance.now(),target=+t.dataset.num;
+      (function f(now){
+        const p=T?clamp((now-t0)/T,0,1):1;
+        t.textContent=Math.round(target*easeOut(p));
+        if(p<1)requestAnimationFrame(f);
+      })(t0);
+      io2.unobserve(t);
+    });
+  },{threshold:.6});
+  document.querySelectorAll("[data-num]").forEach(n=>io2.observe(n));
+}
+
+/* ================= 启动 ================= */
+buildGauge();
+buildTimeline();
+buildDomains();
+buildCells();
+initReveal();
+scrub(NOW_YEAR);
+addEventListener("load",()=>{
+  setTimeout(()=>{
+    $("#boot").classList.add("done");
+    bootGauge();
+  },REDUCED?0:900);
+});
+</script>
+</body>
+</html>

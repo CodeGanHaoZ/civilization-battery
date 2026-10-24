@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>文明耗电史 · CIVILIZATION POWER HISTORY</title>
+<meta name="description" content="把一万年文明史拖成一条线：狩猎、农耕、工业、信息、AI——每一节电池，都是一次能量的跃迁。Trae 盲盒挑战赛 第 2 组。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&family=IBM+Plex+Mono:wght@300;400&family=Noto+Sans+SC:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F4F1;
+  --paper-2:#EDEDE9;
+  --ink:#1B1E20;
+  --mut:#8B9298;
+  --mut-2:#B7BCB9;
+  --line:#D9DBD5;
+  --mist:#5E7C8B;
+  --moss:#7C9A82;
+  --rust:#B3695C;
+  --sans:"Space Grotesk","Noto Sans SC","Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-weight:300;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+::selection{background:var(--mist);color:#fff}
+
+/* ---------- 开机遮罩 ---------- */
+#boot{
+  position:fixed;inset:0;z-index:200;background:var(--paper);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  transition:opacity .7s ease,visibility .7s;
+}
+#boot.done{opacity:0;visibility:hidden}
+#boot .b-label{font-family:var(--mono);font-size:11px;letter-spacing:.35em;color:var(--mut)}
+#boot .b-track{width:180px;height:1px;background:var(--line);position:relative;overflow:hidden}
+#boot .b-track i{position:absolute;left:0;top:0;height:100%;width:40%;background:var(--ink);animation:bootSlide 1.1s ease-in-out infinite}
+@keyframes bootSlide{0%{left:-40%}100%{left:100%}}
+
+/* ---------- 顶栏 / 版式 ---------- */
+header{display:flex;justify-content:space-between;align-items:baseline;padding:22px 28px;border-bottom:1px solid var(--line)}
+header .brand{font-family:var(--mono);font-size:11px;letter-spacing:.3em}
+header .brand b{font-weight:400}
+header .brand span{color:var(--mut);margin-left:10px}
+header .meta{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--mut)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+section{border-bottom:1px solid var(--line)}
+.sec-head{display:flex;align-items:baseline;gap:16px;padding:44px 0 10px}
+.sec-head .no{font-family:var(--mono);font-size:11px;color:var(--mut);letter-spacing:.2em}
+.sec-head h2{font-size:13px;font-weight:400;letter-spacing:.45em}
+.sec-head .en{font-family:var(--mono);font-size:10px;color:var(--mut-2);letter-spacing:.3em;margin-left:auto}
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.2,.6,.2,1),transform .9s cubic-bezier(.2,.6,.2,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- HERO ---------- */
+.hero{padding:70px 0 56px;text-align:center;border-bottom:1px solid var(--line)}
+.hero .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.5em;color:var(--mut);margin-bottom:30px}
+.hero h1{font-size:clamp(34px,7vw,58px);font-weight:200;letter-spacing:.18em;line-height:1.4}
+.hero .sub{margin-top:22px;font-size:13px;letter-spacing:.22em;color:var(--mut)}
+.hero .sub em{font-style:normal;color:var(--ink)}
+.hero .ops{margin-top:34px;display:inline-flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.hero .op{font-family:var(--mono);font-size:10px;letter-spacing:.25em;color:var(--mut);border:1px solid var(--line);padding:8px 14px}
+
+/* ---------- 01 万年时间线 ---------- */
+#longscroll{padding-bottom:80px}
+.tl-toolbar{display:flex;align-items:center;gap:8px;margin:26px 0 0;justify-content:flex-end}
+.tl-toolbar .hint{margin-right:auto;font-family:var(--mono);font-size:10px;letter-spacing:.25em;color:var(--mut-2)}
+.zbtn{
+  width:34px;height:34px;background:none;border:1px solid var(--line);cursor:pointer;
+  color:var(--mut);font-family:var(--mono);font-size:13px;line-height:1;
+  transition:border-color .3s,color .3s;
+}
+.zbtn:hover{border-color:var(--ink);color:var(--ink)}
+#stage{
+  position:relative;height:220px;margin-top:12px;
+  touch-action:none;cursor:ew-resize;user-select:none;-webkit-user-select:none;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+#stage svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+#stage .node{cursor:pointer}
+.rd{
+  display:grid;grid-template-columns:repeat(6,1fr);
+  border-left:0;border-right:0;margin-top:0;
+}
+.rd .c{padding:16px 10px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:center}
+.rd .c:last-child{border-right:0}
+.rd .k{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--mut);margin-bottom:9px}
+.rd .v{font-family:var(--mono);font-size:clamp(13px,2vw,18px);font-weight:300}
+.rd .v.hot{color:var(--rust)}
+.rd .v.slide-in{animation:vIn .45s cubic-bezier(.2,.6,.2,1)}
+@keyframes vIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.tl-note{margin-top:34px;font-size:11px;color:var(--mut);line-height:2.1;max-width:640px}
+
+/* ---------- 02 卡氏标尺 ---------- */
+#kardashev{padding-bottom:80px}
+#kSvg{display:block;width:100%;height:auto;margin-top:26px}
+.k-note{margin-top:26px;font-size:11px;color:var(--mut);line-height:2.1;max-width:640px}
+.k-note b{font-weight:400;color:var(--ink)}
+
+/* ---------- 03 六节电池 ---------- */
+#cells{padding-bottom:84px}
+.cells-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
+.era{
+  border:1px solid var(--line);padding:24px 20px 20px;background:var(--paper);
+  cursor:pointer;transition:border-color .35s,transform .35s;
+}
+.era:hover{border-color:var(--ink);transform:translateY(-3px)}
+.era.ghost{border-style:dashed;background:transparent}
+.era .e-no{font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--mut-2)}
+.era h3{margin-top:12px;font-size:15px;font-weight:400;letter-spacing:.35em}
+.era h3 span{display:block;font-family:var(--mono);font-size:9px;color:var(--mut-2);letter-spacing:.22em;margin-top:6px;font-weight:300}
+.era .e-span{margin-top:14px;font-family:var(--mono);font-size:10px;color:var(--mut);letter-spacing:.12em}
+.era .e-big{margin-top:16px;font-family:var(--mono);font-size:26px;font-weight:300}
+.era .e-big i{font-style:normal;font-size:11px;color:var(--mut);margin-left:4px}
+.era .e-src{margin-top:12px;font-size:11px;color:var(--mut);letter-spacing:.14em;border-top:1px solid var(--paper-2);padding-top:12px}
+.era.ghost .e-big,.era.ghost h3{color:var(--mut)}
+
+/* ---------- 弹窗 ---------- */
+#modal{
+  position:fixed;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(244,244,241,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  opacity:0;visibility:hidden;transition:opacity .35s,visibility .35s;
+}
+#modal.open{opacity:1;visibility:visible}
+.m-card{
+  width:min(620px,100%);max-height:82vh;overflow:auto;position:relative;
+  background:var(--paper);border:1px solid var(--line);border-bottom:0;
+  padding:34px 34px 40px;
+  transform:translateY(46px);transition:transform .45s cubic-bezier(.2,.7,.2,1);
+}
+#modal.open .m-card{transform:none}
+.m-head{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line);padding-bottom:18px;flex-wrap:wrap}
+.m-head .no{font-family:var(--mono);font-size:10px;color:var(--mut);letter-spacing:.2em}
+.m-head h3{font-size:15px;font-weight:400;letter-spacing:.4em}
+.m-head .span{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--mut)}
+.m-close{
+  position:absolute;top:14px;right:16px;width:36px;height:36px;
+  background:none;border:1px solid var(--line);cursor:pointer;color:var(--mut);
+  font-size:14px;line-height:1;transition:border-color .3s,color .3s;
+}
+.m-close:hover{border-color:var(--ink);color:var(--ink)}
+.m-rows{margin-top:8px}
+.m-row{
+  display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:14px 0;border-bottom:1px solid var(--paper-2);
+  opacity:0;transform:translateY(10px);
+}
+.m-row.in{animation:vIn .5s cubic-bezier(.2,.6,.2,1) forwards}
+.m-row .mk{font-size:12px;letter-spacing:.12em}
+.m-row .mk small{display:block;font-family:var(--mono);font-size:9px;color:var(--mut-2);letter-spacing:.15em;margin-top:4px}
+.m-row .mv{font-family:var(--mono);font-size:14px;text-align:right}
+.m-row.skel .mk,.m-row.skel .mv{background:linear-gradient(90deg,var(--paper-2) 25%,#e2e2dd 45%,var(--paper-2) 65%);background-size:220% 100%;animation:shimmer 1s linear infinite;border-radius:2px}
+.m-row.skel .mk{width:120px;height:12px}
+.m-row.skel .mv{width:90px;height:14px}
+@keyframes shimmer{from{background-position:120% 0}to{background-position:-120% 0}}
+.m-foot{margin-top:22px;font-size:10px;color:var(--mut-2);letter-spacing:.1em;line-height:1.9}
+
+/* ---------- 结语 ---------- */
+#end{padding:110px 0 90px;text-align:center;border-bottom:0}
+#end .big{font-size:clamp(24px,5vw,42px);font-weight:200;letter-spacing:.14em;line-height:1.75}
+#end .big em{font-style:normal;color:var(--mist)}
+#end .sig{margin-top:44px;font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--mut);line-height:2.4}
+
+/* ---------- 响应式 ---------- */
+@media (max-width:820px){
+  header{padding:16px 18px}
+  header .meta{display:none}
+  .wrap{padding:0 18px}
+  .sec-head h2{letter-spacing:.3em}
+  #stage{height:190px}
+  .rd{grid-template-columns:repeat(3,1fr)}
+  .rd .c:nth-child(3n){border-right:0}
+  .cells-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .era{padding:18px 14px 16px}
+  .era .e-big{font-size:20px}
+  .m-card{padding:28px 20px 34px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<div id="boot" aria-hidden="true">
+  <div class="b-label">LOADING ARCHIVE · 文明档案调取中</div>
+  <div class="b-track"><i></i></div>
+</div>
+
+<header>
+  <div class="brand"><b>CIVILIZATION POWER HISTORY</b><span>文明耗电史</span></div>
+  <div class="meta">TRAE 盲盒挑战赛 · 第 2 组 · 文明 × 电量表 × 北欧冷淡风</div>
+</header>
+
+<!-- HERO -->
+<section class="hero wrap" style="border-bottom:0;padding-bottom:0">
+  <div class="kicker">TEN THOUSAND YEARS OF WATTS · 一万年功率档案</div>
+  <h1 class="reveal">文明耗电史</h1>
+  <div class="sub reveal">人类换过<em>五次电池</em>，第六次正在充电。</div>
+  <div class="ops reveal">
+    <span class="op">DRAG · 拖拽游标</span>
+    <span class="op">SCROLL / PINCH · 缩放</span>
+    <span class="op">TAP CELL · 点击电池看详情</span>
+  </div>
+</section>
+<section id="longscroll">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="no">01</span><h2>万年时间线</h2><span class="en">THE LONG SCROLL · 8000 BCE — 2200</span></div>
+    <div class="tl-toolbar reveal">
+      <span class="hint">← 拖拽游标 · DRAG TO SCRUB / 滚轮·双指缩放 / 点击电池 →</span>
+      <button class="zbtn" id="zOut" aria-label="缩小">−</button>
+      <button class="zbtn" id="zIn" aria-label="放大">+</button>
+      <button class="zbtn" id="zReset" aria-label="重置">⟲</button>
+    </div>
+    <div class="rd reveal">
+      <div class="c"><div class="k">YEAR 年代</div><div class="v" id="rYear">—</div></div>
+      <div class="c"><div class="k">ERA 时代</div><div class="v" id="rEra">—</div></div>
+      <div class="c"><div class="k">PER CAPITA 人均功率</div><div class="v" id="rKcal">—</div></div>
+      <div class="c"><div class="k">CIV. TOTAL 全球总功率</div><div class="v" id="rTw">—</div></div>
+      <div class="c"><div class="k">POPULATION 人口</div><div class="v" id="rPop">—</div></div>
+      <div class="c"><div class="k">KARDASHEV 卡氏等级</div><div class="v hot" id="rKar">—</div></div>
+    </div>
+    <div id="stage" role="slider" aria-label="拖拽查看 8000 年前至 2200 年的文明功率" aria-valuemin="-8000" aria-valuemax="2200" tabindex="0">
+      <svg id="svg"></svg>
+    </div>
+    <p class="tl-note reveal">纵轴是对数：从火到聚变，人类功率每上一步，都是一次「换电池」。前五节已放电一万年——第五节正在放电，第六节还是虚线。</p>
+  </div>
+</section>
+
+<!-- 02 卡氏标尺 -->
+<section id="kardashev">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="no">02</span><h2>卡尔达肖夫标尺</h2><span class="en">KARDASHEV RULER · LOG W</span></div>
+    <svg id="kSvg" aria-label="卡尔达肖夫等级标尺"></svg>
+    <p class="k-note reveal">萨根公式 <b>K = (log₁₀P − 6) / 10</b>。人类的 K 值用了一万年，才从 0.01 爬到 <b>0.73</b>；距 I 型行星文明，还差约 <b>500 倍</b>功率——按每年 2.5% 的增速，大约还要两个半世纪。这把标尺上没有终点刻度。</p>
+  </div>
+</section>
+
+<!-- 03 六节电池 -->
+<section id="cells">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="no">03</span><h2>六节电池</h2><span class="en">SIX CELLS · CLICK FOR DETAILS</span></div>
+    <div class="cells-grid" id="eraGrid"></div>
+    <p class="k-note reveal" style="margin-top:30px">人均功率取「当时最先进社会」样本（Cook, 1971 口径）；全球总功率按全球均值估算，口径不同，趋势相同。</p>
+  </div>
+</section>
+
+<!-- 结语 -->
+<section id="end" class="wrap">
+  <p class="big reveal">文明的全部历史，<br>就是一部<em>换电池</em>的历史。</p>
+  <div class="sig reveal">
+    CIVILIZATION POWER HISTORY · NORDIC EDITION<br>
+    TRAE BLIND-BOX CHALLENGE — GROUP 02<br>
+    数据来源：E. Cook (1971) Science · C. Sagan (1973) · UN WPP · EI (2024) · 示意估算
+  </div>
+</section>
+
+<!-- 弹窗 -->
+<div id="modal" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="m-card">
+    <button class="m-close" id="mClose" aria-label="关闭">✕</button>
+    <div class="m-head"><span class="no" id="mNo">01</span><h3 id="mName">—</h3><span class="span" id="mSpan">—</span></div>
+    <div class="m-rows" id="mRows"></div>
+    <div class="m-foot" id="mFoot"></div>
+  </div>
+</div>
+
+<script>
+/* ================= 数据 ================= */
+const NODES=[
+  {year:-8000,span:"公元前 8000 年起",era:"狩猎采集",en:"FORAGERS",pop:0.005, kcal:5000,  tw:1.2e-6,src:"火 · 肌肉 · 木材",        tech:"火种 · 石器 · 独木舟",future:false},
+  {year:-3000,span:"公元前 3000 年起",era:"农耕时代",en:"AGRARIAN", pop:0.045, kcal:12000, tw:2.6e-5,src:"生物质 · 畜力",           tech:"犁 · 灌溉 · 青铜",    future:false},
+  {year:1400, span:"公元 1400 年",    era:"农耕时代",en:"AGRARIANⅡ",pop:0.35, kcal:26000, tw:4.4e-4,src:"生物质 · 水力 · 风力",    tech:"水轮 · 风车 · 指南针",future:false},
+  {year:1880, span:"公元 1880 年",    era:"工业时代",en:"INDUSTRIAL",pop:1.4,  kcal:77000, tw:3.0e-1,src:"煤 · 蒸汽",               tech:"蒸汽机 · 铁路 · 电报",future:false},
+  {year:2026, span:"现在 · NOW",      era:"信息时代",en:"INFORMATION",pop:8.2, kcal:190000,tw:1.96e1,src:"石油 · 天然气 · 电力 · 算力",tech:"电网 · 计算机 · 互联网",future:false,now:true},
+  {year:2100, span:"2100 · 预估",     era:"AI 时代", en:"AI ERA",   pop:10.2,  kcal:400000,tw:4.5e1, src:"电力 · 可再生 · 核聚变?",  tech:"AI · 聚变 · 地球工程",future:true},
+];
+const YEARS=[-8000,-3000,0,1500,1900,2026,2200];
+const FRAC =[0,   .13, .28, .46, .63, .92, 1];
+const ERAS=[
+  [-8000,-3000,"狩猎采集"],[-3000,1750,"农耕时代"],
+  [1750,1970,"工业时代"],[1970,2026,"信息时代"],[2026,2200,"AI 时代 · 预估"],
+];
+const NOW=2026;
+const LMIN=Math.log10(1.2e6), LMAX=Math.log10(4.5e13);
+
+/* ================= 工具 ================= */
+const $=s=>document.querySelector(s);
+const NS="http://www.w3.org/2000/svg";
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const REDUCED=matchMedia("(prefers-reduced-motion: reduce)").matches;
+function el(tag,attrs){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+function txt(g,x,y,str,attrs){const t=el("text",Object.assign({x,y,fill:"var(--mut)","font-family":"var(--mono)","font-size":"10"},attrs||{}));t.textContent=str;g.appendChild(t);return t;}
+
+function yToF(y){
+  y=clamp(y,YEARS[0],YEARS[YEARS.length-1]);
+  let i=0;while(i<YEARS.length-2&&y>YEARS[i+1])i++;
+  return FRAC[i]+(y-YEARS[i])/(YEARS[i+1]-YEARS[i])*(FRAC[i+1]-FRAC[i]);
+}
+function fToY(f){
+  f=clamp(f,0,1);
+  let i=0;while(i<FRAC.length-2&&f>FRAC[i+1])i++;
+  return YEARS[i]+(f-FRAC[i])/(FRAC[i+1]-FRAC[i])*(YEARS[i+1]-YEARS[i]);
+}
+function eraOf(y){for(const[a,b,n]of ERAS)if(y>=a&&y<b)return n;return ERAS[ERAS.length-1][2];}
+function nodesAt(y){ // 对数插值
+  y=clamp(y,NODES[0].year,NODES[NODES.length-1].year);
+  let i=0;while(i<NODES.length-2&&y>NODES[i+1].year)i++;
+  const a=NODES[i],b=NODES[i+1],t=(y-a.year)/(b.year-a.year);
+  const L=(u,v)=>Math.pow(10,lerp(Math.log10(u),Math.log10(v),t));
+  return {kcal:L(a.kcal,b.kcal),tw:L(a.tw,b.tw),pop:L(a.pop,b.pop)};
+}
+function fmtYear(y){return y<0?"前 "+(-y):""+y;}
+function fmtKcal(v){const s=v>=1e5?1000:v>=2e4?500:100;return (Math.round(v/s)*s).toLocaleString("en-US");}
+function fmtW(w){
+  if(w<1e9){const v=w/1e6;return (v<10?v.toFixed(1):v.toFixed(0))+" MW";}
+  if(w<1e12){const v=w/1e9;return (v<10?v.toFixed(1):v.toFixed(0))+" GW";}
+  const v=w/1e12;return (v<100?v.toFixed(1):v.toFixed(0))+" TW";
+}
+function fmtPop(p){return p<1?(p*1000<10?(p*1000).toFixed(1):Math.round(p*1000))+" M":(p<10?p.toFixed(1):p.toFixed(1))+" B";}
+function kOf(w){return (Math.log10(w)-6)/10;}
+
+/* ================= 01 万年时间线 ================= */
+const stage=$("#stage"),svg=$("#svg");
+let zoom=1,ox=0,curYear=NOW,baseW=1000,gStatic,gProbe;
+
+function wX(y){return yToF(y)*baseW*zoom+ox;}
+function clampOx(){ox=clamp(ox,stage.clientWidth-baseW*zoom,0);}
+
+function buildStage(){
+  baseW=stage.clientWidth;
+  svg.setAttribute("viewBox",`0 0 ${baseW} 220`);
+  svg.innerHTML="";
+  gStatic=el("g",{});svg.appendChild(gStatic);
+  gProbe=el("g",{});svg.appendChild(gProbe);
+  renderTrack();drawProbe();
+}
+function renderTrack(){
+  const W=stage.clientWidth;gStatic.innerHTML="";
+  const BASE=158;
+  // 曲线（先画，置于电池后层）
+  const pts=NODES.map(n=>`${wX(n.year)},${150-(Math.log10(n.tw)-LMIN)/(LMAX-LMIN)*72}`);
+  const nowI=NODES.findIndex(n=>n.year===NOW);
+  gStatic.appendChild(el("polyline",{points:pts.slice(0,nowI+1).join(" "),fill:"none",stroke:"var(--mist)","stroke-width":"1","stroke-dasharray":"2 4"}));
+  gStatic.appendChild(el("polyline",{points:pts.slice(nowI).join(" "),fill:"none",stroke:"var(--mist)","stroke-width":"1","stroke-dasharray":"2 5",opacity:".35"}));
+  // 基线
+  gStatic.appendChild(el("line",{x1:wX(-8000),y1:BASE,x2:wX(2200),y2:BASE,stroke:"var(--mut-2)","stroke-width":"1"}));
+  // 刻度
+  const majors=[-8000,-3000,0,1500,2200],minors=[-6000,-4000,-2000,-1000,500,1000,1800,1900,2100];
+  for(const y of minors){
+    const x=wX(y);
+    gStatic.appendChild(el("line",{x1:x,y1:BASE,x2:x,y2:BASE-5,stroke:"var(--line)","stroke-width":"1"}));
+  }
+  for(const y of majors){
+    const x=wX(y);
+    gStatic.appendChild(el("line",{x1:x,y1:BASE,x2:x,y2:BASE-11,stroke:"var(--mut)","stroke-width":"1"}));
+    txt(gStatic,x,BASE+14,fmtYear(y),{"text-anchor":"middle",fill:"var(--mut)"});
+  }
+  // NOW 标记
+  const nx=wX(NOW);
+  gStatic.appendChild(el("line",{x1:nx,y1:34,x2:nx,y2:BASE,stroke:"var(--rust)","stroke-width":"1","stroke-dasharray":"1 3"}));
+  txt(gStatic,nx,28,"NOW",{"text-anchor":"middle",fill:"var(--rust)","font-size":"9","letter-spacing":"2"});
+  // 时代电池节点
+  const KC0=Math.log10(5000),KC1=Math.log10(400000);
+  NODES.forEach((n,i)=>{
+    const x=wX(n.year),norm=(Math.log10(n.kcal)-KC0)/(KC1-KC0);
+    const h=26+norm*38,w=16,ghost=n.future,c=n.now?"var(--rust)":"var(--ink)";
+    const g=el("g",{class:"node","data-i":i});
+    g.appendChild(el("rect",{x:x-w/4,y:BASE-h-6,width:w/2,height:5,fill:"none",stroke:c,"stroke-width":"1","stroke-dasharray":ghost?"2 2":"none"}));
+    g.appendChild(el("rect",{x:x-w/2,y:BASE-h,width:w,height:h,fill:"var(--paper)",stroke:c,"stroke-width":"1.2","stroke-dasharray":ghost?"2 2":"none"}));
+    if(!ghost){
+      const lh=Math.max(2,(h-3)*(0.12+norm*0.83));
+      g.appendChild(el("rect",{x:x-w/2+1.5,y:BASE-lh-1.5,width:w-3,height:lh,fill:n.now?"var(--rust)":"var(--mist)",opacity:".8"}));
+    }else{
+      txt(g,x,BASE-h/2+4,"?",{"text-anchor":"middle",fill:"var(--rust)","font-size":"13"});
+    }
+    txt(g,x,BASE+32,n.era,{"text-anchor":"middle",fill:n.now?"var(--rust)":"var(--ink)","font-size":"11","font-family":"var(--sans)","letter-spacing":"2","font-weight":"400"});
+    txt(g,x,BASE+46,fmtYear(n.year)+(n.future?" ·预估":""),{"text-anchor":"middle",fill:"var(--mut-2)","font-size":"9"});
+    gStatic.appendChild(g);
+  });
+}
+function drawProbe(){
+  gProbe.innerHTML="";
+  const x=wX(curYear);
+  gProbe.appendChild(el("line",{x1:x,y1:14,x2:x,y2:158,stroke:"var(--ink)","stroke-width":"1.4"}));
+  const t=txt(gProbe,x,10,fmtYear(curYear),{"text-anchor":"middle",fill:"var(--ink)","font-size":"13","font-weight":"400"});
+  t.setAttribute("paint-order","stroke");
+  t.setAttribute("stroke","var(--paper)");t.setAttribute("stroke-width","4");
+  gProbe.appendChild(el("circle",{cx:x,cy:158,r:"4.5",fill:"var(--paper)",stroke:"var(--ink)","stroke-width":"1.4"}));
+  stage.setAttribute("aria-valuenow",Math.round(curYear));
+}
+let lastRd=null;
+function scrubYear(y){
+  curYear=clamp(Math.round(y),-8000,2200);
+  drawProbe();
+  const v=nodesAt(curYear),w=v.tw*1e12;
+  const vals={y:curYear,era:eraOf(curYear),kcal:v.kcal,tw:v.tw,pop:v.pop};
+  $("#rYear").textContent=fmtYear(curYear)+(curYear<0?" BCE":"");
+  $("#rEra").textContent=vals.era;
+  $("#rKcal").textContent=fmtKcal(vals.kcal)+" kcal/日";
+  $("#rTw").textContent=fmtW(w);
+  $("#rPop").textContent=fmtPop(vals.pop);
+  $("#rKar").textContent=kOf(w).toFixed(3);
+  if(lastRd&&!REDUCED)for(const id of["rYear","rEra","rKcal","rTw","rPop","rKar"]){
+    const n=document.getElementById(id);
+    n.classList.remove("slide-in");void n.offsetWidth;n.classList.add("slide-in");
+  }
+  lastRd=vals;
+}
+function scrubFromX(cx){
+  const r=stage.getBoundingClientRect();
+  const f=clamp((cx-r.left-ox)/(baseW*zoom),0,1);
+  scrubYear(fToY(f));
+}
+/* 缩放 */
+function zoomAt(cx,f){
+  const nz=clamp(zoom*f,1,6);f=nz/zoom;
+  if(f===1)return;
+  ox=cx-f*(cx-ox);zoom=nz;clampOx();
+  renderTrack();drawProbe();
+}
+$("#zIn").addEventListener("click",()=>zoomAt(stage.clientWidth/2,1.5));
+$("#zOut").addEventListener("click",()=>zoomAt(stage.clientWidth/2,1/1.5));
+$("#zReset").addEventListener("click",()=>{zoom=1;ox=0;renderTrack();drawProbe();});
+stage.addEventListener("wheel",e=>{
+  e.preventDefault();
+  const r=stage.getBoundingClientRect();
+  zoomAt(e.clientX-r.left,Math.exp(-e.deltaY*0.0015));
+},{passive:false});
+/* 指针：拖拽=scrub，双指=缩放，单击节点=弹窗 */
+const ptrs=new Map();let pinch0=0,zoom0=1;
+stage.addEventListener("pointerdown",e=>{
+  stage.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,moved:false});
+  if(ptrs.size===2){
+    const[a,b]=[...ptrs.values()];
+    pinch0=Math.hypot(a.x-b.x,a.y-b.y);zoom0=zoom;
+  }
+});
+stage.addEventListener("pointermove",e=>{
+  const p=ptrs.get(e.pointerId);if(!p)return;
+  if(ptrs.size===2){
+    p.x=e.clientX;p.y=e.clientY;
+    const[a,b]=[...ptrs.values()];
+    const d=Math.hypot(a.x-b.x,a.y-b.y);
+    if(pinch0>0&&d>0){
+      const mid=(a.x+b.x)/2-stage.getBoundingClientRect().left;
+      zoom=zoom0;zoomAt(mid,d/pinch0);
+    }
+    p.moved=true;return;
+  }
+  if(Math.abs(e.clientX-p.x)>6||Math.abs(e.clientY-p.y)>6)p.moved=true;
+  scrubFromX(e.clientX);
+});
+stage.addEventListener("pointerup",e=>{
+  const p=ptrs.get(e.pointerId);
+  if(p&&!p.moved&&ptrs.size===1){
+    const node=e.target.closest&&e.target.closest("[data-i]");
+    if(node)openModal(NODES[+node.dataset.i],+node.dataset.i);
+    else scrubFromX(e.clientX);
+  }
+  ptrs.delete(e.pointerId);
+});
+stage.addEventListener("pointercancel",e=>ptrs.delete(e.pointerId));
+stage.addEventListener("keydown",e=>{
+  if(e.key==="ArrowLeft"){scrubYear(curYear-10);e.preventDefault();}
+  if(e.key==="ArrowRight"){scrubYear(curYear+10);e.preventDefault();}
+});
+addEventListener("resize",buildStage);
+
+/* ================= 02 卡氏标尺 ================= */
+function buildK(){
+  const svg=$("#kSvg"),W=Math.max(320,svg.parentElement.clientWidth-0),H=130;
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  const pad=24,xOf=L=>pad+(L-7)/9*(W-pad*2),BASE=86;
+  svg.appendChild(el("line",{x1:pad,y1:BASE,x2:W-pad,y2:BASE,stroke:"var(--mut-2)","stroke-width":"1"}));
+  for(let L=7;L<=16;L+=0.25){
+    const major=Number.isInteger(L),x=xOf(L);
+    svg.appendChild(el("line",{x1:x,y1:BASE,x2:x,y2:BASE-(major?14:6),stroke:major?"var(--mut)":"var(--line)","stroke-width":"1"}));
+    if(major){
+      const t=el("text",{x,y:BASE+18,"text-anchor":"middle",fill:"var(--mut)","font-size":"10","font-family":"var(--mono)"});
+      t.textContent="10^"+L;svg.appendChild(t);
+    }
+  }
+  const mk=(L,color,label,sub)=>{
+    const x=xOf(L);
+    svg.appendChild(el("line",{x1:x,y1:BASE-46,x2:x,y2:BASE,stroke:color,"stroke-width":"1.2"}));
+    const a=el("text",{x,y:BASE-58,"text-anchor":"middle",fill:color,"font-size":"11","font-family":"var(--mono)","font-weight":"400"});
+    a.textContent=label;svg.appendChild(a);
+    const b=el("text",{x,y:BASE-44,"text-anchor":"middle",fill:"var(--mut-2)","font-size":"9","font-family":"var(--mono)"});
+    b.textContent=sub;svg.appendChild(b);
+  };
+  mk(13.29,"var(--rust)","K 0.73 · 人类 2026","≈ 20 TW");
+  mk(16,"var(--ink)","I 型 · 行星文明","10^16 W");
+  const x1=xOf(13.29),x2=xOf(16);
+  svg.appendChild(el("line",{x1:x1,y1:BASE-72,x2:x2,y2:BASE-72,stroke:"var(--mut-2)","stroke-width":"1"}));
+  const gap=el("text",{x:(x1+x2)/2,y:BASE-78,"text-anchor":"middle",fill:"var(--mut)","font-size":"10","font-family":"var(--mono)","letter-spacing":"2"});
+  gap.textContent="≈ 500×";svg.appendChild(gap);
+}
+
+/* ================= 03 六节电池卡片 ================= */
+function buildEras(){
+  const grid=$("#eraGrid");
+  NODES.forEach((n,i)=>{
+    const d=document.createElement("div");
+    d.className="era reveal"+(n.future?" ghost":"");
+    d.style.transitionDelay=(i*60)+"ms";
+    const kW=(n.kcal*4184/86400/1000);
+    d.innerHTML=`
+      <div class="e-no">CELL ${String(i+1).padStart(2,"0")}${n.now?" · IN USE":""}</div>
+      <h3>${n.era}<span>${n.en}</span></h3>
+      <div class="e-span">${n.span}</div>
+      <div class="e-big">${n.future?"400,000+":fmtKcal(n.kcal)}<i>kcal/日 ≈ ${kW.toFixed(1)} kW</i></div>
+      <div class="e-src">${n.src}</div>`;
+    d.addEventListener("click",()=>openModal(n,i));
+    grid.appendChild(d);
+  });
+}
+
+/* ================= 弹窗 ================= */
+const modal=$("#modal");let mTimer=null;
+function openModal(n,i){
+  $("#mNo").textContent="CELL "+String(i+1).padStart(2,"0");
+  $("#mName").textContent=n.era+" · "+n.en;
+  $("#mSpan").textContent=n.span;
+  $("#mFoot").textContent="人均功率：Cook (1971) 口径之先进社会样本 · 全球功率与人口为全球均值示意估算"+(n.future?" · 未来数值为线性外推，仅供想象":"");
+  const rows=$("#mRows");rows.innerHTML="";
+  const kW=(n.kcal*4184/86400/1000);
+  const data=[
+    ["能源来源","ENERGY SOURCE",n.src,""],
+    ["人均功率","PER CAPITA",n.future?"400,000+":fmtKcal(n.kcal),"kcal/日 ≈ "+kW.toFixed(1)+" kW"],
+    ["全球人口","POPULATION",fmtPop(n.pop),"人"],
+    ["全球总功率","CIV. TOTAL",fmtW(n.tw*1e12),"连续功率"],
+    ["卡氏等级","KARDASHEV",kOf(n.tw*1e12).toFixed(3),"K"],
+    ["关键技术","KEY TECH",n.tech,""],
+  ];
+  data.forEach(()=>{
+    const s=document.createElement("div");
+    s.className="m-row skel";
+    s.innerHTML=`<div class="mk"></div><div class="mv"></div>`;
+    rows.appendChild(s);
+  });
+  modal.classList.add("open");modal.setAttribute("aria-hidden","false");
+  document.body.style.overflow="hidden";
+  clearTimeout(mTimer);
+  mTimer=setTimeout(()=>{
+    [...rows.children].forEach((s,j)=>{
+      setTimeout(()=>{
+        const r=data[j];
+        s.classList.remove("skel");
+        s.innerHTML=`<div class="mk">${r[0]}<small>${r[1]}</small></div><div class="mv">${r[2]}<span>${r[3]}</span></div>`;
+        s.classList.add("in");
+      },j*110);
+    });
+  },REDUCED?0:650);
+}
+function closeModal(){
+  modal.classList.remove("open");modal.setAttribute("aria-hidden","true");
+  document.body.style.overflow="";clearTimeout(mTimer);
+}
+$("#mClose").addEventListener("click",closeModal);
+modal.addEventListener("click",e=>{if(e.target===modal)closeModal();});
+addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+
+/* ================= 滚动进入 ================= */
+function initReveal(){
+  const io=new IntersectionObserver(es=>{
+    es.forEach(en=>{if(en.isIntersecting){en.target.classList.add("in");io.unobserve(en.target);}});
+  },{threshold:.15});
+  document.querySelectorAll(".reveal").forEach(n=>io.observe(n));
+}
+
+/* ================= 启动 ================= */
+buildStage();buildK();buildEras();initReveal();scrubYear(NOW);
+addEventListener("load",()=>setTimeout(()=>$("#boot").classList.add("done"),REDUCED?0:800));
+</script>
+</body>
+</html>
