@@ -371,6 +371,79 @@ button{font-family:var(--mono);cursor:pointer}
   .sc-in .sub{margin-top:10px;line-height:2}
   .big-btn{margin-top:20px}
 }
+
+/* ---------- 新手引导浮层 ---------- */
+#tutorial{
+  position:fixed;inset:0;z-index:65;pointer-events:none;
+  opacity:0;visibility:hidden;transition:opacity .5s,visibility .5s;
+}
+#tutorial.on{opacity:1;visibility:visible}
+#tutorial .t-spot{
+  position:absolute;border:1px solid var(--mist);border-radius:4px;
+  box-shadow:0 0 0 9999px rgba(244,244,241,.72),0 0 30px rgba(94,124,139,.15);
+  transition:all .5s cubic-bezier(.2,.7,.2,1);
+}
+#tutorial .t-label{
+  position:absolute;font-family:var(--mono);font-size:9px;letter-spacing:.24em;
+  color:var(--mist);background:var(--paper);padding:6px 12px;
+  border:1px solid var(--line);white-space:nowrap;
+  transition:all .5s cubic-bezier(.2,.7,.2,1);
+}
+#tutorial .t-line{
+  position:absolute;height:1px;background:var(--mist);opacity:.5;
+  transform-origin:left;transform:scaleX(0);transition:transform .5s .1s;
+}
+#tutorial.on .t-line{transform:scaleX(1)}
+
+/* ---------- IP 形象：电量精灵 ---------- */
+#spirit{
+  position:fixed;right:14px;bottom:110px;z-index:68;
+  width:64px;height:64px;cursor:pointer;user-select:none;
+  transition:transform .3s cubic-bezier(.2,.7,.2,1),opacity .4s;
+  opacity:0;pointer-events:none;
+}
+#spirit.show{opacity:1;pointer-events:auto}
+#spirit:hover{transform:scale(1.06)}
+#spirit:active{transform:scale(.95)}
+#spirit .s-ring{
+  position:absolute;inset:-4px;border-radius:50%;
+  border:1px solid var(--mist);opacity:.3;
+  animation:spiritPulse 3s ease-in-out infinite;
+}
+@keyframes spiritPulse{50%{opacity:.7;transform:scale(1.08)}}
+#spirit .s-face{
+  width:100%;height:100%;background:var(--card);border:1px solid var(--line);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;position:relative;box-shadow:0 2px 12px -4px rgba(27,30,32,.15);
+  animation:spiritBreath 4s ease-in-out infinite;
+}
+@keyframes spiritBreath{50%{box-shadow:0 4px 18px -6px rgba(27,30,32,.25)}}
+#spirit .s-face img{width:100%;height:100%;object-fit:cover;filter:grayscale(.15) contrast(.96) saturate(.85)}
+#spirit .s-badge{
+  position:absolute;top:-4px;right:-4px;width:18px;height:18px;
+  background:var(--mist);color:var(--paper);border-radius:50%;
+  font-size:10px;display:flex;align-items:center;justify-content:center;
+  animation:badgeBounce 2s ease-in-out infinite;
+}
+@keyframes badgeBounce{50%{transform:translateY(-3px)}}
+
+/* 知识点气泡 */
+#tip{
+  position:fixed;right:88px;bottom:110px;z-index:69;
+  width:min(260px,70vw);background:var(--card);border:1px solid var(--line);
+  padding:16px 18px;font-size:11px;line-height:1.9;letter-spacing:.06em;
+  opacity:0;visibility:hidden;transform:translateX(10px);
+  transition:opacity .35s,visibility .35s,transform .35s cubic-bezier(.2,.7,.2,1);
+}
+#tip.on{opacity:1;visibility:visible;transform:none}
+#tip::before{
+  content:"";position:absolute;right:-6px;top:50%;transform:translateY(-50%) rotate(45deg);
+  width:10px;height:10px;background:var(--card);border-right:1px solid var(--line);border-top:1px solid var(--line);
+}
+#tip .t-tag{font-family:var(--mono);font-size:8px;letter-spacing:.3em;color:var(--mist);margin-bottom:8px;display:block}
+#tip .t-text{color:var(--mut)}
+#tip .t-x{position:absolute;top:8px;right:8px;width:20px;height:20px;border:none;background:none;color:var(--mut-2);font-size:10px;cursor:pointer}
+
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}#dust{display:none}}
 </style>
 </head>
@@ -494,12 +567,45 @@ button{font-family:var(--mono);cursor:pointer}
   </div>
 </div>
 
+<!-- 新手引导浮层 -->
+<div id="tutorial" aria-hidden="true">
+  <div class="t-spot" id="tSpot1" style="left:50%;top:50%;width:0;height:0;transform:translate(-50%,-50%)">
+    <div class="t-label" style="left:-60px;top:-36px">卡牌 · 左右滑动抉择</div>
+    <div class="t-line" style="left:-56px;top:-16px;width:48px;transform-origin:right"></div>
+  </div>
+  <div class="t-spot" id="tSpot2" style="left:0;top:0;width:0;height:0">
+    <div class="t-label" style="left:0;top:100%">电量 · 0 或 100 即死</div>
+    <div class="t-line" style="left:50%;top:100%;width:1px;height:20px;transform:rotate(90deg);transform-origin:top"></div>
+  </div>
+  <div class="t-spot" id="tSpot3" style="left:0;top:0;width:0;height:0">
+    <div class="t-label" style="right:0;top:100%">选项 · 点击也可出牌</div>
+    <div class="t-line" style="right:0;top:100%;width:1px;height:20px;transform:rotate(90deg);transform-origin:top"></div>
+  </div>
+</div>
+
+<!-- IP 形象：电量精灵 -->
+<div id="spirit" aria-label="电量精灵">
+  <div class="s-ring"></div>
+  <div class="s-face">
+    <img id="spiritImg" alt="电量精灵">
+  </div>
+  <div class="s-badge">?</div>
+</div>
+
+<!-- 知识点气泡 -->
+<div id="tip">
+  <span class="t-tag" id="tipTag">—</span>
+  <div class="t-text" id="tipText">—</div>
+  <button class="t-x" id="tipX">✕</button>
+</div>
+
 <script>
 /* ================= 图片（统一北欧冷淡风生成图） ================= */
 const IMG_STYLE=", scandinavian minimalist photography, muted desaturated palette, fog grey and warm grey tones, soft diffused light, subtle film grain, vast negative space, quiet cold atmosphere, editorial minimalism";
 const imgURL=(p,s)=>`https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(p+IMG_STYLE)}&image_size=${s}`;
 const IMG_HERO=imgURL("a single minimalist analog voltage gauge with a thin needle mounted on a pale grey concrete wall, soft shadow","landscape_16_9");
 const IMG_END =imgURL("a dead minimalist battery lying on a bare concrete floor, thin layer of dust, dramatic side light","landscape_16_9");
+const IMG_SPIRIT=imgURL("a minimalist nordic style spirit character, small round battery body with two simple dot eyes and thin antenna, pale mist blue and warm grey colors, soft diffused light, standing on plain background","square");
 
 /* ================= 数据 ================= */
 const DOM=[
@@ -607,6 +713,46 @@ const DEATHS={
   kno:{lo:["最后一位识字的人死去了。","THE LAST READER"],"hi":["真相太多，多到无人再信。","NOISE DROWNED"]},
   soc:{lo:["每一座城，都成了一座孤岛。","ALL ISLANDS"],"hi":["绝对一致——意味着无人思考。","HIVE MIND"]},
 };
+
+/* ================= 知识点库 ================= */
+const TIPS={
+  fire:[
+    {tag:"能量史 · ENERGY",text:"旧石器时代，每人每天消耗约 5000 千卡能量，几乎全部来自食物和篝火。"},
+    {tag:"文明公式 · KARDASHEV",text:"卡尔达肖夫用能量定义文明等级：K = (log₁₀P − 6) / 10，P 为功率（瓦）。"},
+    {tag:"协作起源 · SOCIETY",text:"火堆是人类最早的协作中心：围火而食、分享故事，是语言与组织的摇篮。"},
+    {tag:"风险预警 · BALANCE",text:"能源透支会直接导致生态崩溃——旧石器时代的许多聚落，正是毁林后消亡的。"},
+    {tag:"知识载体 · MEMORY",text:"在没有文字的时代，星图与岩画是唯一能跨代传递知识的媒介。"},
+  ],
+  soil:[
+    {tag:"农业革命 · AGRICULTURE",text:"新石器革命后，人类每天可用能量跃升至约 10000 千卡——粮食让定居成为可能。"},
+    {tag:"文字诞生 · WRITING",text:"最早的楔形文字不是诗歌，而是仓库的库存清单——记录，就是权力的开始。"},
+    {tag:"城市出现 · CITY",text:"耶利哥和乌鲁克在距今 8000-6000 年前出现，人口第一次突破千人规模。"},
+    {tag:"生态代价 · ECOLOGY",text:"两河流域因过度灌溉导致盐碱化，公元前 2000 年大片农田被废弃。"},
+    {tag:"历法精度 · CALENDAR",text:"古埃及历法的误差，让尼罗河泛滥预测失准，直接影响王朝兴衰。"},
+  ],
+  steam:[
+    {tag:"工业革命 · INDUSTRY",text:"1800 年，人均日能耗突破 30000 千卡。蒸汽机把人类从肌肉时代推入热力时代。"},
+    {tag:"煤炭峰值 · COAL",text:"英国煤炭产量在 1913 年达到峰值，此后长期下降——能源转型从未停止。"},
+    {tag:"童工法案 · LABOR",text:"1847 年英国《十小时法案》限制童工，是工业社会最早的伦理约束。"},
+    {tag:"信息革命 · TELEGRAPH",text:"1858 年第一条跨大西洋电报电缆铺设，全球信息传递从数周缩短到数分钟。"},
+    {tag:"环境预警 · SMOG",text:"1952 年伦敦烟雾事件致死 4000 余人，催生了全球第一部《清洁空气法案》。"},
+  ],
+  silicon:[
+    {tag:"信息爆炸 · DATA",text:"2020 年全球数据总量达 64.2ZB，相当于每人每天产生 1.7GB 新数据。"},
+    {tag:"核阈值 · NUCLEAR",text:"1945 年后，人类第一次拥有了毁灭自身文明的技术能力——这是历史的分水岭。"},
+    {tag:"气候临界点 · CLIMATE",text:"IPCC 评估：全球升温超过 1.5°C 将触发不可逆的生态系统级联崩溃。"},
+    {tag:"数字协作 · INTERNET",text:"互联网让知识传播成本趋近于零，但也让虚假信息以同样速度扩散。"},
+    {tag:"人口转折 · DEMOGRAPHY",text:"2022 年全球人口突破 80 亿，但生育率持续下降，老龄化成为新挑战。"},
+  ],
+  dawn:[
+    {tag:"聚变前景 · FUSION",text:"可控核聚变若商业化，一升海水蕴含的能量相当于 300 升汽油。"},
+    {tag:"多行星 · MULTIPLANET",text:"SpaceX 星舰若成功，人类将在本世纪内成为真正的多行星物种。"},
+    {tag:"AI 治理 · AI",text:"大模型参数量每 18 个月翻十倍，但能耗也同步增长——效率与伦理同等重要。"},
+    {tag:"语言消亡 · LANGUAGE",text:"每两周就有一种语言消失。语言是文化的压缩包，消失即不可逆。"},
+    {tag:"I 型门槛 · TYPE I",text:"卡尔达肖夫 I 型文明：能掌控行星全部能量输出，约 10¹⁶ 瓦。人类目前约 0.73。"},
+  ],
+};
+const EPOCH_KEYS=["fire","soil","steam","silicon","dawn"];
 
 /* ================= 工具 ================= */
 const $=s=>document.querySelector(s);
@@ -924,6 +1070,7 @@ function startGame(){
   $("#outro").classList.remove("on");
   [...document.querySelectorAll("#stack .card")].forEach(c=>c.remove());
   $("#hint").classList.remove("show","gone");
+  $("#tip").classList.remove("on");
   setAmbient(0);
   preload();
   // 电量从 0 充到初值（开机加载动效）
@@ -932,6 +1079,29 @@ function startGame(){
   setTimeout(()=>{
     animateTo(target,()=>{busy=false;spawnCard();});
   },REDUCED?0:500);
+  // 新手引导（仅首次进入）
+  if(!tutDone){
+    setTimeout(showTutorial,REDUCED?0:1800);
+    tutDone=true;
+  }
+  // 显示电量精灵
+  setTimeout(()=>$("#spirit").classList.add("show"),REDUCED?0:2400);
+}
+let tutDone=false;
+function showTutorial(){
+  const tut=$("#tutorial"),stack=$("#stack"),cells=$("#cells"),opts=$("#opts");
+  const sr=stack.getBoundingClientRect(),cr=cells.getBoundingClientRect(),or=opts.getBoundingClientRect();
+  const s1=$("#tSpot1"),s2=$("#tSpot2"),s3=$("#tSpot3");
+  s1.style.left=sr.left+"px";s1.style.top=sr.top+"px";
+  s1.style.width=sr.width+"px";s1.style.height=sr.height+"px";
+  s1.style.transform="none";
+  s2.style.left=cr.left+"px";s2.style.top=cr.top+"px";
+  s2.style.width=cr.width+"px";s2.style.height=cr.height+"px";
+  s3.style.left=or.left+"px";s3.style.top=or.top+"px";
+  s3.style.width=or.width+"px";s3.style.height=or.height+"px";
+  tut.classList.add("on");
+  // 8 秒后自动消失
+  setTimeout(()=>tut.classList.remove("on"),REDUCED?3000:8000);
 }
 $("#startBtn").addEventListener("click",e=>{
   const btn=$("#startBtn");
@@ -968,15 +1138,38 @@ $("#optR").addEventListener("click",()=>applyChoice("R"));
 $("#rulesBtn").addEventListener("click",()=>$("#rules").classList.add("on"));
 $("#rulesX").addEventListener("click",()=>$("#rules").classList.remove("on"));
 $("#rules").addEventListener("click",e=>{if(e.target.id==="rules")$("#rules").classList.remove("on");});
+
+/* 电量精灵交互 */
+let tipIdx=0;
+$("#spirit").addEventListener("click",()=>{
+  const tip=$("#tip"),tag=$("#tipTag"),text=$("#tipText");
+  if(tip.classList.contains("on")){
+    tip.classList.remove("on");
+    return;
+  }
+  const epochIdx=st?Math.floor(st.idx/7):0;
+  const key=EPOCH_KEYS[epochIdx];
+  const list=TIPS[key]||TIPS.fire;
+  const t=list[tipIdx%list.length];tipIdx++;
+  tag.textContent=t.tag;
+  text.textContent=t.text;
+  tip.classList.add("on");
+  // 8 秒后自动收起
+  setTimeout(()=>tip.classList.remove("on"),8000);
+});
+$("#tipX").addEventListener("click",()=>$("#tip").classList.remove("on"));
+
 addEventListener("keydown",e=>{
   if(!st||busy)return;
   if(e.key==="ArrowLeft")applyChoice("L");
   if(e.key==="ArrowRight")applyChoice("R");
   if(e.key==="Escape")$("#rules").classList.remove("on");
+  if(e.key==="Escape")$("#tip").classList.remove("on");
 });
 /* 初始化静态内容 */
 buildCells();buildDots();
 $("#heroImg").src=IMG_HERO;safeImg($("#heroImg"),$("#heroImg"));
+$("#spiritImg").src=IMG_SPIRIT;safeImg($("#spiritImg"),$("#spiritImg").parentElement);
 </script>
 </body>
 </html>
